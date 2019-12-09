@@ -2,14 +2,13 @@ const makeNode = (name) => ({
     connections: [],
     name,
     visited: false,
-    isStart: name === 'COM'
+    isStart: name === 'SAN'
 })
 
 const setNodeLength = (graph, nodeName, predecessor) => {
     const node = graph[nodeName];
-    if(!node.visited) {
+    if(node.distance === undefined) {
         Object.assign(node, {
-            visited: true,
             predecessorName: predecessor.name,
             distance: predecessor.distance + 1
         })
@@ -22,7 +21,6 @@ const setDistances = graph => {
     const rootNode = graph[Object.keys(graph).find(key => graph[key].isStart)];
     Object.assign(rootNode, {
         distance: 0,
-        visited: true
     })
     rootNode.connections.forEach(connectedNode => setNodeLength(graph, connectedNode, rootNode));
 }
