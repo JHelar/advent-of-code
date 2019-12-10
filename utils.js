@@ -11,5 +11,6 @@ const readArray = inputFileName => getStringFromFile(inputFileName).split(',')
 module.exports = {
     sumReducer,
     readModules,
-    readArray
+    readArray,
+    getStringFromFile
 }
