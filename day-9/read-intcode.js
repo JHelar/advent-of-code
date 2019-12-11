@@ -11,9 +11,9 @@ const PARAMETER_MODE = {
     RELATIVE: "2"
 }
 let debugParam = false;
-let relativeBase = 0;
+let relativeBase = BigInt(0);
 const getParameterAddress = (intcode, pointer, mode) => {
-    switch(mode) {
+    switch (mode) {
         case PARAMETER_MODE.POSITION:
             return intcode[pointer];
         case PARAMETER_MODE.IMMEDIATE:
@@ -22,10 +22,27 @@ const getParameterAddress = (intcode, pointer, mode) => {
             return sanitizeParam(intcode[pointer]) + relativeBase;
     }
 };
-const getParameterAddresses = (intcode, pointer, modes) => modes.map((mode, index) => getParameterAddress(intcode, pointer + index + 1, mode));
-const makeOperation = operation => async (intcode, pointer, modes) => await operation(intcode, pointer, getParameterAddresses(intcode, pointer, modes))
-
-const sanitizeParam = param => typeof param === 'bigint' ? param : param | 0
+const getParameterAddresses = (intcode, pointer, modes) => modes.map((mode, index) => {
+    // if (debugParam) {
+    //     console.log({
+    //         mode,
+    //         pointer
+    //     })
+    // }
+    return getParameterAddress(intcode, pointer + BigInt(index + 1), mode);
+});
+const makeOperation = operation => async (intcode, pointer, modes) => {
+    const addresses = getParameterAddresses(intcode, pointer, modes);
+    // if (debugParam) {
+    //     console.log({
+    //         pointer,
+    //         relativeBase,
+    //         addresses
+    //     })
+    // }
+    return await operation(intcode, pointer, addresses)
+}
+const sanitizeParam = param => param ? typeof param === 'bigint' ? param : BigInt(param) : BigInt(0)
 
 const addOperation = makeOperation((intcode, pointer, params) => {
     const [paramAddress1, paramAddress2, outputAddress] = params;
@@ -34,15 +51,9 @@ const addOperation = makeOperation((intcode, pointer, params) => {
     const param2 = sanitizeParam(intcode[paramAddress2]);
 
     let output = param1 + param2;
-    // If output is 16 digits redo as bigint
-    if(typeof output !== 'bigint' && output.toString().length >= 16) {
-        output = BigInt(param1) * BigInt(param2);
-    }
-
     intcode[outputAddress] = output;
-
     return Promise.resolve({
-        pointer: pointer + 4
+        pointer: pointer + BigInt(4)
     });
 });
 const multiplyOperation = makeOperation((intcode, pointer, params) => {
@@ -52,14 +63,10 @@ const multiplyOperation = makeOperation((intcode, pointer, params) => {
     const param2 = sanitizeParam(intcode[paramAddress2]);
 
     let output = param1 * param2;
-    // If output is 16 digits redo as bigint
-    if(typeof output !== 'bigint' && output.toString().length >= 16) {
-        output = BigInt(param1) * BigInt(param2);
-    }
     intcode[outputAddress] = output;
 
     return Promise.resolve({
-        pointer: pointer + 4
+        pointer: pointer + BigInt(4)
     });
 });
 const inputOperation = makeOperation((intcode, pointer, params) => {
@@ -73,7 +80,7 @@ const inputOperation = makeOperation((intcode, pointer, params) => {
         rl.close();
         intcode[inputAddress] = ans;
         resolve({
-            pointer: pointer + 2,
+            pointer: pointer + BigInt(2),
         });
     }))
 });
@@ -82,16 +89,16 @@ const outputOperation = makeOperation((intcode, pointer, params) => {
     const output = intcode[outputAddress];
     process.stdout.write(output + '\n')
     return Promise.resolve({
-        pointer: pointer + 2,
+        pointer: pointer + BigInt(2),
         output
     });
 });
 const jumpIfTrueOperation = makeOperation((intcode, pointer, params) => {
-    const [ paramAddress1, paramAddress2 ] = params;
+    const [paramAddress1, paramAddress2] = params;
     const checkValue = sanitizeParam(intcode[paramAddress1]);
-    let gotoValue = pointer + 3;
+    let gotoValue = pointer + BigInt(3);
 
-    if(checkValue !== 0) {
+    if (checkValue != 0) {
         gotoValue = sanitizeParam(intcode[paramAddress2]);
     }
 
@@ -101,11 +108,11 @@ const jumpIfTrueOperation = makeOperation((intcode, pointer, params) => {
 });
 
 const jumpIfFalseOperation = makeOperation((intcode, pointer, params) => {
-    const [ paramAddress1, paramAddress2 ] = params;
+    const [paramAddress1, paramAddress2] = params;
     const checkValue = sanitizeParam(intcode[paramAddress1]);
-    let gotoValue = pointer + 3;
+    let gotoValue = pointer + BigInt(3);
 
-    if(checkValue === 0) {
+    if (checkValue == 0) {
         gotoValue = sanitizeParam(intcode[paramAddress2]);
     }
 
@@ -115,38 +122,38 @@ const jumpIfFalseOperation = makeOperation((intcode, pointer, params) => {
 });
 
 const lessThanOperation = makeOperation((intcode, pointer, params) => {
-    const [ paramAddress1, paramAddress2, outputAddress ] = params;
+    const [paramAddress1, paramAddress2, outputAddress] = params;
     const oneValue = sanitizeParam(intcode[paramAddress1]);
     const anotherValue = sanitizeParam(intcode[paramAddress2]);
     const outputValue = oneValue < anotherValue ? 1 : 0;
 
-    intcode[outputAddress] = outputValue;
+    intcode[outputAddress] = BigInt(outputValue);
 
     return Promise.resolve({
-        pointer: pointer + 4
+        pointer: pointer + BigInt(4)
     })
 });
 
 const equalsOperation = makeOperation((intcode, pointer, params) => {
-    const [ paramAddress1, paramAddress2, outputAddress ] = params;
+    const [paramAddress1, paramAddress2, outputAddress] = params;
     const oneValue = sanitizeParam(intcode[paramAddress1]);
     const anotherValue = sanitizeParam(intcode[paramAddress2]);
     const outputValue = oneValue == anotherValue ? 1 : 0;
 
-    intcode[outputAddress] = outputValue;
+    intcode[outputAddress] = BigInt(outputValue);
 
     return Promise.resolve({
-        pointer: pointer + 4
+        pointer: pointer + BigInt(4)
     })
 });
 
 const adjustRelativeBaseOperation = makeOperation((intcode, pointer, params) => {
-    const [ paramAddress1 ] = params;
+    const [paramAddress1] = params;
     const adjustValue = sanitizeParam(intcode[paramAddress1]);
     relativeBase = relativeBase + adjustValue;
 
     return Promise.resolve({
-        pointer: pointer + 2
+        pointer: pointer + BigInt(2)
     })
 })
 
@@ -178,13 +185,24 @@ const getInstructions = instructionString => {
 }
 
 const readIntcode = async (intcode) => {
+    intcode = intcode.reduce((map, code, address) => {
+        map[address] = BigInt(code);
+        return map;
+    }, {})
+    // intcode = intcode.map(code => BigInt(code));
     let output = 0;
     let current_state = STATE.NEXT;
-    let pointer = 0;
+    let pointer = BigInt(0);
 
     while (current_state !== STATE.EXIT) {
         const { operation, modes, opcode } = getInstructions(intcode[pointer]);
-        
+        if (debugParam) {
+            console.log({
+                pointer,
+                opcode,
+                intcode
+            })
+        }
         if (operation) {
             const result = await operation(intcode, pointer, modes);
             if (result.output !== undefined) {
