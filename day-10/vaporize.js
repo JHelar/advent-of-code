@@ -1,72 +1,34 @@
 const {
-	contains,
-	getDistance,
+	angleTo,
 	getAngle,
-	getPointFromAngle,
-	getPointFromAngleAndDistance
+	getDistance,
 } = require('./line');
+
+let baseAngle = -270;
 const isNotPoint = myPoint => point => point.name !== myPoint.name;
 
-const setDistance = (lazor, astroidMap) => astroidMap.map(target => ({ distance: getDistance(lazor, target), ...target }));
 const sortByClosest = (a, b) => a.distance - b.distance;
-
-const getTargets = (lazor, toPoint, astroidMap) =>
-	astroidMap
-		.filter(point => contains(lazor, toPoint, point))
-		.map(target => ({ distance: getDistance(lazor, target), ...target }));
-
-const getTargetsByAngle = (lazor, astroidMap, lazorAngle) => astroidMap.filter(point => {
-	const angle = getAngle(lazor, point) | 0;
-	return angle === lazorAngle;
-})
-
-const getClosestTarget = targets => targets.sort(sortByClosest)[0];
-
-const rotate = (lazor, astroidMap) => {
-	let lookUpMap = [...astroidMap];
-	let vaporized = [];
-	let stopAt = 0;
-	for (let angle = 90; angle >= -90; angle -= 1) {
-	
-		const targets = getTargetsByAngle(lazor, lookUpMap, angle);
-		if (targets.length) {
-			const vaporize = getClosestTarget(targets);
-			vaporized.push({...vaporize, angle});
-
-			lookUpMap = lookUpMap.filter(isNotPoint(vaporize));
-		}
-	}
-
-	return {
-		astroidMap: lookUpMap,
-		vaporized
-	};
-};
-
-const machineGun = (lazor, astroidMap) => {
-	let lookUpMap = setDistance(lazor, [...astroidMap]).filter(isNotPoint(lazor)).sort(sortByClosest);
-	let rotations = 0;
-	let vaporized = [];
-	let shoot = true;
-	
-	while (shoot) {
-		const rotationResult = rotate(lazor, lookUpMap);
-		lookUpMap = rotationResult.astroidMap;
-		if (rotationResult.vaporized.length) {
-			vaporized = vaporized.concat(rotationResult.vaporized);
-			rotations++;
+const setAngle = (lazor, astroidMap, angle) => astroidMap.map(point => ({angle: angleTo(lazor, point, baseAngle), ...point}));
+const setDistanceGroups = (lazor, astroidMap) => Object.values(astroidMap
+	.map(point => ({...point, distance: getDistance(lazor, point)}))
+	.reduce((angleMap, point) => {
+		if(point.angle in angleMap) {
+			angleMap[point.angle].push(point)
+			angleMap[point.angle].sort(sortByClosest)
 		} else {
-			break;
+			angleMap[point.angle] = [point]
 		}
-	}
+		return angleMap
+	}, {}))
+	
+const vaporize = (lazor, astroidMap) => {
+	astroidMap = astroidMap.filter(isNotPoint(lazor));
+	let newMap = setDistanceGroups(lazor, setAngle(lazor, astroidMap)).sort((a, b) => a[0].angle - b[0].angle);
+	// Set angle 0 to end of map
+	const angle0Group = newMap.filter(a => a[0].angle === 0);
+	newMap = newMap.filter(a => a[0].angle !== 0);
+	newMap.push(...angle0Group);
+	return newMap.reverse();
+}
 
-	return {
-		rotations,
-		vaporized
-	};
-};
-
-module.exports = {
-	rotate,
-	machineGun
-};
+module.exports = vaporize;
