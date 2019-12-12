@@ -18,7 +18,6 @@ const getAstroidCount = (point, map) => {
             canSee.push(lookUp);
         }
     }
-
     // console.log({
     //     point,
     //     canSee

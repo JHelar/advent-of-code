@@ -1,79 +1,72 @@
-const { contains, getLength } = require('./line');
-const isNotPoint = myPoint => point => point.name !== myPoint.name
-const maybeCheat = (lazor, astroidMap) => astroidMap.map(target => ({ distance: getLength(lazor, target), ...target })).sort((a, b) => a.distance - b.distance)
-const getTargets = (lazor, toPoint, astroidMap) => astroidMap.filter(point => contains(lazor, toPoint, point)).map(target => ({ distance: getLength(lazor, target), ...target }));
-const getClosestTarget = (targets) => targets.sort((a, b) => a.distance - b.distance)[0]
-const rotate = (lazor, astroidMap, mapWidth, mapHeight) => {
-    let targetX = lazor.x;
-    let targetY = 0;
+const {
+	contains,
+	getDistance,
+	getAngle,
+	getPointFromAngle,
+	getPointFromAngleAndDistance
+} = require('./line');
+const isNotPoint = myPoint => point => point.name !== myPoint.name;
 
-    let dirX = 1;
-    let dirY = 0;
+const setDistance = (lazor, astroidMap) => astroidMap.map(target => ({ distance: getDistance(lazor, target), ...target }));
+const sortByClosest = (a, b) => a.distance - b.distance;
 
-    let lookUpMap = [...astroidMap];
-    let steps = mapWidth * mapHeight;
+const getTargets = (lazor, toPoint, astroidMap) =>
+	astroidMap
+		.filter(point => contains(lazor, toPoint, point))
+		.map(target => ({ distance: getDistance(lazor, target), ...target }));
 
-    let vaporized = [];
+const getTargetsByAngle = (lazor, astroidMap, lazorAngle) => astroidMap.filter(point => {
+	const angle = getAngle(lazor, point) | 0;
+	return angle === lazorAngle;
+})
 
-    for(let step = 0; step < steps; step++) {
-        const target = { x: targetX, y: targetY }
-        const targets = getTargets(lazor, target, lookUpMap);
-       
-        if(targets.length) {
-            const vaporize = getClosestTarget(targets);
-            vaporized.push(vaporize);
+const getClosestTarget = targets => targets.sort(sortByClosest)[0];
 
-            lookUpMap = lookUpMap.filter(isNotPoint(vaporize));
-        }
-        targetX = targetX + (dirX * 1);
-        targetY = targetY + (dirY * 1);
+const rotate = (lazor, astroidMap) => {
+	let lookUpMap = [...astroidMap];
+	let vaporized = [];
+	let stopAt = 0;
+	for (let angle = 90; angle >= -90; angle -= 1) {
+	
+		const targets = getTargetsByAngle(lazor, lookUpMap, angle);
+		if (targets.length) {
+			const vaporize = getClosestTarget(targets);
+			vaporized.push({...vaporize, angle});
 
-        if(targetX === mapWidth && targetY === 0) {
-            dirX = 0;
-            dirY = 1;
-        } else if(targetX === mapWidth && targetY === mapHeight) {
-            dirX = -1;
-            dirY = 0;
-        } else if(targetX === 0 && targetY === mapHeight) {
-            dirX = 0;
-            dirY = -1;
-        } else if(targetX === 0 && targetY === 0) {
-            dirX = 1;
-            dirY = 0;
-        }
-    }
+			lookUpMap = lookUpMap.filter(isNotPoint(vaporize));
+		}
+	}
 
-    return {
-        astroidMap: lookUpMap,
-        vaporized
-    }
-}
+	return {
+		astroidMap: lookUpMap,
+		vaporized
+	};
+};
 
-const machineGun = (lazor, astroidMap, mapWidth, mapHeight) => {
-    let lookUpMap = [...astroidMap];
-    let rotations = 0;
-    let vaporized = [];
-    let shoot = true;
+const machineGun = (lazor, astroidMap) => {
+	let lookUpMap = setDistance(lazor, [...astroidMap]).filter(isNotPoint(lazor)).sort(sortByClosest);
+	let rotations = 0;
+	let vaporized = [];
+	let shoot = true;
+	
+	while (shoot) {
+		const rotationResult = rotate(lazor, lookUpMap);
+		lookUpMap = rotationResult.astroidMap;
+		if (rotationResult.vaporized.length) {
+			vaporized = vaporized.concat(rotationResult.vaporized);
+			rotations++;
+		} else {
+			break;
+		}
+	}
 
-    while(shoot){
-        const rotationResult = rotate(lazor, lookUpMap, mapWidth, mapHeight);
-        if(rotationResult.vaporized.length) {
-            vaporized = vaporized.concat(rotationResult.vaporized);
-            lookUpMap = rotationResult.astroidMap;
-            rotations++;
-        } else {
-            break;
-        }
-    }
-
-    return {
-        rotations,
-        vaporized
-    }
-}
+	return {
+		rotations,
+		vaporized
+	};
+};
 
 module.exports = {
-    rotate,
-    machineGun,
-    maybeCheat
-}
+	rotate,
+	machineGun
+};
