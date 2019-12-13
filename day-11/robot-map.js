@@ -1,84 +1,79 @@
+const readline = require('readline');
+const rl = readline.createInterface({
+	input: process.stdin,
+	output: process.stdout
+});
+
 const COLORS = {
-    '0': 'BLACK',
-    '1': 'WHITE',
-    BLACK: '0',
-    WHITE: '1',
-}
-const DIRECTION = {
-    UP: { x: 0, y: -1, name: 'UP' },
-    RIGHT: { x: 1, y: 0, name: 'RIGHT' },
-    DOWN: { x: 0, y: 1, name: 'DOWN' },
-    LEFT: { x: -1, y: 0, name: 'LEFT' },
-}
+	BLACK: '0',
+	WHITE: '1'
+};
 
-const ROBOT_DIRECTION_COMMAND = {
-    '0': currentDirection => getNextDirection(currentDirection, 1),
-    '1': currentDirection => getNextDirection(currentDirection, -1)
-}
+const DIRECTIONS = [
+	0, // Up
+	1, // Right
+	2, // Down
+	3 // Left
+];
 
-const getNextDirection = (fromDirection, dir) => {
-    const directionKeys = Object.keys(DIRECTION);
-    const myDirectionIndex = directionKeys.findIndex(k => k === fromDirection);
-    let nextDirectionIndex = myDirectionIndex + dir;
-    if (nextDirectionIndex < 0) {
-        nextDirectionIndex = directionKeys.length + nextDirectionIndex;
-    } else if (nextDirectionIndex >= directionKeys.length) {
-        nextDirectionIndex = nextDirectionIndex % directionKeys.length;
-    }
-    const toDirection = directionKeys[nextDirectionIndex];
-    return DIRECTION[toDirection];
-}
+const getMapKey = ({ x, y }) => `(${x},${y})`;
+let debug = true;
+console.tryLog = msg => {
+	if (debug) {
+		console.log(msg);
+	}
+};
 
-const getMapKey = (x, y) => x * 100 + y;
+const robotMap = program => {
+	const map = {};
+	let position = {
+		x: 0,
+		y: 0
+	};
+	let facing = DIRECTIONS[0];
+	let startPanel = true;
 
-const robotMap = (read, write) => new Promise(res => {
-    let currentDirection = DIRECTION.UP;
-    let positionX = 50;
-    let positionY = 50;
-    let map = {}
-    let command = 0;
-    let paintColor = COLORS['0']
-    let commandColor = COLORS['0'];
+	while (program.state === 'ON') {
+		const currentColor = startPanel ? COLORS.WHITE : map[getMapKey(position)] || COLORS.BLACK;
+		startPanel = false;
+		const [nextColor, nextDirection] = program.run(currentColor);
 
-    write.push('0\n');
+		if (!nextColor) break;
+		map[getMapKey(position)] = nextColor;
 
-    const writeToRobot = () => {
-        // First color
-        const node = map[getMapKey(positionX, positionY)];
-        if (node) {
-            commandColor = node.color;
-            node.color = paintColor;
-        } else {
-            map[getMapKey(positionX, positionY)] = {
-                x: positionX,
-                y: positionY,
-                color: paintColor
-            };
-        }
-        // Then move
-        positionX = positionX + currentDirection.x;
-        positionY = positionY + currentDirection.y;
+		if (nextDirection == '0') {
+			facing = DIRECTIONS[(facing + 3) % 4];
+		} else if (nextDirection == '1') {
+			facing = DIRECTIONS[(facing + 1) % 4];
+		} else {
+			throw new Error('Invalid direction');
+		}
 
-        write.push(`${COLORS[commandColor]}\n`);
-    }
-
-    read.on('data', robotData => {
-        const code = robotData.toString();
-        if (code === 'EXIT') {
-            res(map);
-            return;
-        }
-        if (command === 0) { // Set color to map
-            paintColor = COLORS[code];
-            command = 1;
-        } else {
-            currentDirection = ROBOT_DIRECTION_COMMAND[code](currentDirection.name);
-            command = 0;
-
-            // Write back to robot
-            writeToRobot();
-        }
-    })
-})
+		if (facing === 0) {
+			position = {
+				...position,
+				y: position.y + 1
+			};
+		} else if (facing === 1) {
+			position = {
+				...position,
+				x: position.x + 1
+			};
+		} else if (facing === 2) {
+			position = {
+				...position,
+				y: position.y - 1
+			};
+		} else if (facing === 3) {
+			position = {
+				...position,
+				x: position.x - 1
+			};
+		} else {
+			throw new Error('Invalid position')
+		}
+	}
+	return map;
+};
 
 module.exports = robotMap;
