@@ -350,7 +350,7 @@ var makeProgram = function makeProgram(intcode) {
         return [];
       }
 
-      if (outputBuffer.length === 6) {
+      if (outputBuffer.length === 3) {
         return outputBuffer.splice(0);
       }
     }
@@ -401,7 +401,9 @@ var game = function game() {
   var score = 0;
   var playerPos;
   var ballPos;
-  var input_buffer = [];
+  var lastUpdate = Date.now();
+  var FPS = 60;
+  var nextDir = 0;
   var canvas = document.getElementById('game');
   var context = canvas.getContext('2d');
   var scoreElement = document.getElementById('score');
@@ -459,33 +461,33 @@ var game = function game() {
   };
 
   var update = function update() {
-    var input = input_buffer.pop();
-
     if (program.state === 'EXIT') {
-      scoreElement.innerHTML = 'GAME OVER';
+      scoreElement.innerHTML = 'GAME OVER! ' + scoreElement.innerHTML;
     } else {
-      if (program.state !== 'INPUT' || input !== undefined) {
-        console.log({
-          input: input
-        });
-        var output = program.run(input);
-        console.log({
-          output: output
-        });
+      if (Date.now() - lastUpdate > 1000 / FPS || program.state === 'ON') {
+        if (program.state === 'INPUT') {
+          if (ballPos.x < playerPos.x) {
+            nextDir = -1;
+          } else if (ballPos.x > playerPos.x) {
+            nextDir = 1;
+          } else {
+            nextDir = 0;
+          }
+        }
+
+        var output = program.run(nextDir);
 
         if (output) {
-          var _output = _slicedToArray(output, 6),
+          var _output = _slicedToArray(output, 3),
               cx1 = _output[0],
               cy1 = _output[1],
-              ct1 = _output[2],
-              cx2 = _output[3],
-              cy2 = _output[4],
-              ct2 = _output[5];
+              ct1 = _output[2];
 
-          updateTile(cx1, cy1, ct1);
-          updateTile(cx2, cy2, ct2);
+          updateTile(cx1 | 0, cy1 | 0, ct1);
           draw();
         }
+
+        lastUpdate = Date.now();
       }
 
       window.requestAnimationFrame(update);
@@ -495,15 +497,15 @@ var game = function game() {
   document.addEventListener('keyup', function (e) {
     switch (e.key) {
       case 'ArrowRight':
-        input_buffer.push(1);
+        nextDir = 1;
         break;
 
       case 'ArrowLeft':
-        input_buffer.push(-1);
+        nextDir = -1;
         break;
 
       default:
-        input_buffer.push(0);
+        nextDir = 0;
         break;
     }
   });
@@ -539,7 +541,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53896" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60066" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

@@ -23,29 +23,31 @@ const game = () => {
     let score = 0;
     let playerPos;
     let ballPos;
-    const input_buffer = [];
+    let lastUpdate = Date.now();
+    const FPS = 60;
+    let nextDir = 0;
     const canvas = document.getElementById('game');
     const context = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
 
     const updateTile = (x, y, type) => {
-        if(x === -1 && y === 0) { // Update score
+        if (x === -1 && y === 0) { // Update score
             score = type | 0;
         } else {
-            const mapKey = getMapKey(x | 0, y |0);
+            const mapKey = getMapKey(x | 0, y | 0);
             const tileType = TILE_TYPES[type | 0];
-            if(tileType === 'BALL') {
+            if (tileType === 'BALL') {
                 ballPos = {
                     x,
                     y
                 }
-            } else if(tileType === 'PADDLE') {
+            } else if (tileType === 'PADDLE') {
                 playerPos = {
                     x,
                     y
                 }
             } else {
-                if(mapKey in tiles) {
+                if (mapKey in tiles) {
                     tiles[mapKey].type = TILE_TYPES[type | 0];
                 } else {
                     tiles[mapKey] = {
@@ -64,11 +66,11 @@ const game = () => {
             context.fillStyle = COLORS[tile.type]
             context.fillRect(tile.x * TILE_WIDTH, tile.y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
         })
-        if(playerPos) {
+        if (playerPos) {
             context.fillStyle = COLORS.PADDLE;
             context.fillRect(playerPos.x * TILE_WIDTH, playerPos.y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
         }
-        if(ballPos) {
+        if (ballPos) {
             context.fillStyle = COLORS.BALL;
             context.fillRect(ballPos.x * TILE_WIDTH, ballPos.y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
         }
@@ -76,39 +78,41 @@ const game = () => {
     }
 
     const update = () => {
-        let input = input_buffer.pop();
-        if(program.state === 'EXIT') {
-            scoreElement.innerHTML = 'GAME OVER'
+        if (program.state === 'EXIT') {
+            scoreElement.innerHTML = 'GAME OVER! ' + scoreElement.innerHTML;
         } else {
-            if(program.state !== 'INPUT' || input !== undefined) {
-                console.log({
-                    input
-                })
-                const output = program.run(input);
-                console.log({
-                    output
-                })
-                if(output) {
-                    const [cx1, cy1, ct1, cx2, cy2, ct2] = output;
-                    updateTile(cx1, cy1, ct1);
-                    updateTile(cx2, cy2, ct2);
+            if (Date.now() - lastUpdate > 1000 / FPS || program.state === 'ON') {
+                if(program.state === 'INPUT') {
+                    if(ballPos.x < playerPos.x ) {
+                        nextDir = -1;
+                    } else if (ballPos.x > playerPos.x) {
+                        nextDir = 1;
+                    } else {
+                        nextDir = 0;
+                    }
+                }
+                const output = program.run(nextDir);
+                if (output) {
+                    const [cx1, cy1, ct1] = output;
+                    updateTile(cx1 | 0, cy1 | 0, ct1);
                     draw();
                 }
+                lastUpdate = Date.now();
             }
             window.requestAnimationFrame(update)
         }
     }
 
     document.addEventListener('keyup', e => {
-        switch(e.key) {
+        switch (e.key) {
             case 'ArrowRight':
-                input_buffer.push(1);
+                nextDir = 1;
                 break;
             case 'ArrowLeft':
-                input_buffer.push(-1);
+                nextDir = -1;
                 break;
             default:
-                input_buffer.push(0)
+                nextDir = 0
                 break;
         }
     })
