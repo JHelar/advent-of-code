@@ -1,5 +1,6 @@
 const STATE = {
-	ON: 'ON',
+    ON: 'ON',
+    INPUT: 'INPUT',
 	EXIT: 'EXIT'
 };
 
@@ -76,7 +77,8 @@ const makeProgram = intcode => {
 
 	const inputOperation = makeOperation((intcode, pointer, params) => {
 		const [inputAddress] = params;
-		const inputValue = sanitizeParam(inputBuffer.pop());
+        const inputValue = sanitizeParam(inputBuffer.pop());
+        currentState = STATE.INPUT;
 		intcode[inputAddress] = inputValue
 
 		return {
@@ -194,7 +196,7 @@ const makeProgram = intcode => {
 		if(input !== undefined) {
 			inputBuffer.push(input);
 		}
-		while(currentState === STATE.ON) {
+		while(currentState !== STATE.EXIT) {
 			const { operation, modes, opcode } = getInstructions(intcode[pointer]);
 			if (debugParam) {
 				console.log({
@@ -211,7 +213,7 @@ const makeProgram = intcode => {
 				return [];
 			}
 
-			if(outputBuffer.length === 2) {
+			if(outputBuffer.length === 6) {
 				return outputBuffer.splice(0);
 			}
 		}
