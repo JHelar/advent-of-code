@@ -1,4 +1,5 @@
 const makeProgram = require('./read-incode');
+const aStar = require('./a-star');
 
 const input = require('../utils').readArray('./day-15/input.txt');
 
@@ -75,53 +76,70 @@ const posFromDirection = (position, direction) => {
 }
 
 const getMapKey = ({ x, y }) => `(${x},${y})`;
+let findStart = false;
+
+const doWalk = mapValue => mapValue !== '#';
 const getNextDir = (map, direction, position) => {
     const potentialNorth = posFromDirection(position, DIRECTIONS.NORTH);
     const potentialSouth = posFromDirection(position, DIRECTIONS.SOUTH);
     const potentialEast = posFromDirection(position, DIRECTIONS.EAST);
     const potentialWest = posFromDirection(position, DIRECTIONS.WEST);
+
+    const northValue = map[getMapKey(potentialNorth)];
+    if(northValue === undefined) return DIRECTIONS.NORTH;
+
+    const southValue = map[getMapKey(potentialSouth)];
+    if(southValue === undefined) return DIRECTIONS.SOUTH;
+
+    const eastValue = map[getMapKey(potentialEast)];
+    if(eastValue === undefined) return DIRECTIONS.EAST;
+
+    const westValue = map[getMapKey(potentialWest)];
+    if(westValue === undefined) return DIRECTIONS.WEST;
+
+
     switch (direction) {
         case DIRECTIONS.NORTH:
-            if (map[getMapKey(potentialWest)] !== '#') {
+            if (doWalk(map[getMapKey(potentialWest)])) {
                 return DIRECTIONS.WEST;
             }
-            if (map[getMapKey(potentialNorth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialNorth)])) {
                 return DIRECTIONS.NORTH;
             }
-            if (map[getMapKey(potentialEast)] !== '#') {
+            if (doWalk(map[getMapKey(potentialEast)])) {
                 return DIRECTIONS.EAST;
             }
             return DIRECTIONS.SOUTH;
         case DIRECTIONS.SOUTH:
-            if (map[getMapKey(potentialEast)] !== '#') {
+            if (doWalk(map[getMapKey(potentialEast)])) {
                 return DIRECTIONS.EAST;
             }
-            if (map[getMapKey(potentialSouth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialSouth)])) {
                 return DIRECTIONS.SOUTH;
             }
-            if (map[getMapKey(potentialWest)] !== '#') {
+            if (doWalk(map[getMapKey(potentialWest)])) {
                 return DIRECTIONS.WEST;
             }
             return DIRECTIONS.NORTH;
         case DIRECTIONS.EAST:
-            if (map[getMapKey(potentialNorth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialNorth)])) {
                 return DIRECTIONS.NORTH;
             }
-            if (map[getMapKey(potentialEast)] !== '#') {
+            if (doWalk(map[getMapKey(potentialEast)])) {
                 return DIRECTIONS.EAST;
             }
-            if (map[getMapKey(potentialSouth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialSouth)])) {
                 return DIRECTIONS.SOUTH;
             }
             return DIRECTIONS.WEST;
         case DIRECTIONS.WEST:
-            if (map[getMapKey(potentialSouth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialSouth)])) {
                 return DIRECTIONS.SOUTH;
             }
-            if (map[getMapKey(potentialWest)] !== '#') {
+            if (doWalk(map[getMapKey(potentialWest)])) {
                 return DIRECTIONS.WEST;
             }
-            if (map[getMapKey(potentialNorth)] !== '#') {
+            if (doWalk(map[getMapKey(potentialNorth)])) {
                 return DIRECTIONS.NORTH;
             }
             return DIRECTIONS.EAST;
@@ -138,26 +156,33 @@ let currentPos = {
 
 
 const program = makeProgram(input);
+
 theMap[getMapKey(currentPos)] = 'S';
-while (output !== 2) {
+while (true) {
     output = program.run(currentDir);
     output = output | 0;
 
     const nextPosition = posFromDirection(currentPos, currentDir);
+    if(findStart && theMap[getMapKey(currentPos)] === 'S') {
+        break;
+    }
     if (output === 0) {
         theMap[getMapKey(nextPosition)] = '#';
     } else if (output === 1) {
         if(theMap[getMapKey(nextPosition)] !== 'S') {
             theMap[getMapKey(nextPosition)] = '.'
-        };
+        }
         currentPos = nextPosition;
+    } else if (output === 2) {
+        theMap[getMapKey(nextPosition)] = 'W'
+        currentPos = nextPosition;
+        findStart = true;
     }
     currentDir = getNextDir(theMap, currentDir, currentPos);
 }
-theMap[getMapKey(currentPos)] = 'W';
 
 
-const mapNodes = Object.keys(theMap).map(key => {
+let mapNodes = Object.keys(theMap).map(key => {
     // Destruct key to position
     const [x, y] = key.replace(/[\(\)]*/g, '').split(',');
     const value = theMap[key];
@@ -172,6 +197,39 @@ const mapNodes = Object.keys(theMap).map(key => {
 
     return node;
 });
+
+// Create graph
+const mapNodesWithKeys = mapNodes.reduce((m, node) => {
+    m[getMapKey(node)] = node;
+    return m
+}, {});
+
+// Const set node neighbours
+mapNodes.forEach(node => {
+    const potentialNorth = posFromDirection(node, DIRECTIONS.NORTH);
+    const potentialSouth = posFromDirection(node, DIRECTIONS.SOUTH);
+    const potentialEast = posFromDirection(node, DIRECTIONS.EAST);
+    const potentialWest = posFromDirection(node, DIRECTIONS.WEST);
+
+    const neighbours = [potentialNorth, potentialSouth, potentialEast, potentialWest].map(pos => mapNodesWithKeys[getMapKey(pos)]).filter(n => n ? n.value !== '#' : false);
+
+    Object.assign(node, {
+        neighbours
+    })
+})
+
+const startPath = aStar(mapNodes.filter(n => n.value !== '#'));
+let count = 0;
+let lookAt = startPath.prev;
+while(lookAt.node.value !== 'S') {
+    count++
+    lookAt.node.color = 'red';
+    lookAt = lookAt.prev;
+}
+console.log({
+    count
+})
+
 const minWidth = Math.min(...mapNodes.map(({ x }) => x));
 const minHeight = Math.min(...mapNodes.map(({ y }) => y));
 
