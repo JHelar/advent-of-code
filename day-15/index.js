@@ -1,5 +1,7 @@
+const { DIRECTIONS, posFromDirection } = require('./direction')
 const makeProgram = require('./read-incode');
 const aStar = require('./a-star');
+const flood = require('./flood');
 
 const input = require('../utils').readArray('./day-15/input.txt');
 
@@ -8,7 +10,7 @@ const toPixel = node =>
     node.y
     };--y-end:${node.y + 1};--color:${
     node.color
-    };--color-text:${node.color}"></span>`;
+    };--color-text:${node.color}">${node.steps ? node.steps: ''}</span>`;
 const toHtmlDocument = (pixels, width, height) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,15 +24,14 @@ const toHtmlDocument = (pixels, width, height) => `<!DOCTYPE html>
             height: 100vh;
             width: 100vw;
             display: grid;
-            grid-template-columns: repeat(${width}, 10px);
-            grid-template-rows: repeat(${height}, 10px);
+            grid-template-columns: repeat(${width}, 20px);
+            grid-template-rows: repeat(${height}, 20px);
         }
         span {
             display: block;
             grid-column: var(--x);
             grid-row: var(--y);
 			background-color: var(--color);
-			color: var(--color-text);
         }
     </style>
 </head>
@@ -38,42 +39,6 @@ const toHtmlDocument = (pixels, width, height) => `<!DOCTYPE html>
     ${pixels}
 </body>
 </html>`;
-
-const DIRECTIONS = {
-    1: 'NORTH',
-    2: 'SOUTH',
-    3: 'WEST',
-    4: 'EAST',
-    NORTH: 1,
-    SOUTH: 2,
-    WEST: 3,
-    EAST: 4
-}
-
-const posFromDirection = (position, direction) => {
-    switch (direction) {
-        case DIRECTIONS.NORTH:
-            return {
-                x: position.x,
-                y: position.y - 1
-            }
-        case DIRECTIONS.SOUTH:
-            return {
-                x: position.x,
-                y: position.y + 1
-            }
-        case DIRECTIONS.EAST:
-            return {
-                x: position.x + 1,
-                y: position.y
-            }
-        case DIRECTIONS.WEST:
-            return {
-                x: position.x - 1,
-                y: position.y
-            }
-    }
-}
 
 const getMapKey = ({ x, y }) => `(${x},${y})`;
 let findStart = false;
@@ -247,3 +212,21 @@ const pixels = mapNodes
 
 const htmlDoc = toHtmlDocument(pixels, mapWidth + 1, mapHeight + 1);
 require('fs').writeFileSync('./day-15/map.html', htmlDoc);
+
+const steps = flood(mapNodesWithKeys);
+
+const floodPixels = mapNodes
+    .map(node => ({
+        ...node,
+        x: node.x + Math.abs(minWidth) + 1,
+        y: node.y + Math.abs(minHeight) + 1
+    }))
+    .map(toPixel)
+    .join('');
+
+const floodDoc = toHtmlDocument(floodPixels, mapWidth + 1, mapHeight + 1);
+require('fs').writeFileSync('./day-15/map-flood.html', floodDoc);
+
+console.log({
+    steps
+})
