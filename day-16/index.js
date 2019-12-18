@@ -18,7 +18,7 @@ const getPhase = (inputNums, repeat) => {
 	const basePattern = [0, 1, 0, -1];
 
     for(let iteration = 0; iteration < inputNums.length; iteration++) {
-		const results = inputNums.map((num) => {
+		result.push(Math.abs(inputNums.reduce((sum, num) => {
 			const base = basePattern[basePointer];
 			if(baseIterationCount >= iteration) {
 				basePointer = (basePointer + 1) % basePattern.length;
@@ -26,13 +26,8 @@ const getPhase = (inputNums, repeat) => {
 			} else {
 				baseIterationCount++;
 			}
-            return (num * base);
-		})
-		Array(repeat).fill(0).reduce(())
-        result.push(Math.abs() % 10)
-		console.log({
-			iteration
-		})
+            return sum + ((num * base) * repeat);
+		}, 0)) % 10)
 		baseIterationCount = 1;
 		basePointer = 0;
     }
@@ -45,7 +40,6 @@ console.log({
 	offset
 })
 // Repeat input X
-input = Array(10000).fill(input).join('');
 let inputNums = input.split('');
 const phaseCount = 100;
 
@@ -54,7 +48,7 @@ console.log({
 })
 // Make all base patterns
 for(let phase = 0; phase < phaseCount; phase++) {
-	inputNums = getPhase(inputNums);
+	inputNums = getPhase(inputNums, 10000);
 }
 
 console.log({
