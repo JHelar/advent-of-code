@@ -1,4 +1,4 @@
-let input = require('../utils').getStringFromFile('./day-16/test.txt');
+let input = require('../utils').getStringFromFile('./day-16/input.txt');
 
 const getBasePattern = (inputLength, iteration) => {
     const basePattern = [0, 1, 0, -1];
@@ -26,7 +26,7 @@ const getPhase = (inputNums, repeat) => {
 			} else {
 				baseIterationCount++;
 			}
-            return sum + ((num * base) * repeat);
+            return sum + (num * base);
 		}, 0)) % 10)
 		baseIterationCount = 1;
 		basePointer = 0;
@@ -34,23 +34,35 @@ const getPhase = (inputNums, repeat) => {
 
     return result;
 }
+
+const getPhaseP2 = origin => {
+	const inputNums = [...origin];
+	inputNums[inputNums.length - 1] = origin[origin.length - 1];
+	for(let positionConsidered = origin.length - 2; positionConsidered >= 0; positionConsidered--) {
+		inputNums[positionConsidered] = (origin[positionConsidered] + inputNums[positionConsidered + 1]) % 10;
+	}
+	return inputNums;
+}
 // Get message offset
 const offset = input.slice(0, 7) | 0;
-console.log({
-	offset
-})
-// Repeat input X
-let inputNums = input.split('');
 const phaseCount = 100;
+// Repeat input X
+let inputNums = input.split('').map(n => n |0);
+inputNums = Array(10000).fill(0).reduce((acc) => acc.concat(inputNums),[]);
+
+const fromEnd = inputNums.length - offset;
+const toDo = fromEnd * 2;
+
+inputNums = inputNums.splice(inputNums.length - toDo, toDo);
 
 console.log({
 	inputLength: input.length,
 })
 // Make all base patterns
 for(let phase = 0; phase < phaseCount; phase++) {
-	inputNums = getPhase(inputNums, 10000);
+	inputNums = getPhaseP2(inputNums);
 }
 
 console.log({
-    result: inputNums.slice(offset, offset + 8)
+    result: inputNums.slice(fromEnd, fromEnd + 8).join('')
 })
