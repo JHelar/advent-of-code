@@ -10,30 +10,49 @@ const getBasePattern = (inputLength, iteration) => {
         }, []).splice(1, inputLength + 1)
 }
 
-const getPhase = (input, patterns) => {
-    const inputNums = input.split('').map(n => n |0);
-    let result = [];
+const getPhase = (inputNums) => {
+	let result = [];
+	let basePointer = 1;
+	let baseIterationCount = 0;
+
+	const basePattern = [0, 1, 0, -1];
+
     for(let iteration = 0; iteration < inputNums.length; iteration++) {
-        const basePattern = patterns[iteration];
-        
-        result.push(inputNums.reduce((sum, num, index) => {
-            return sum + (num * basePattern[index]);
-        }, 0).toString())
+        result.push(Math.abs(inputNums.reduce((sum, num, index) => {
+			const base = basePattern[basePointer];
+			if(baseIterationCount >= iteration) {
+				basePointer = (basePointer + 1) % basePattern.length;
+				baseIterationCount = 0;
+			} else {
+				baseIterationCount++;
+			}
+            return sum + (num * base);
+		}, 0)) % 10)
+		baseIterationCount = 1;
+		basePointer = 0;
     }
 
-    return result.map(n => n.slice(n.length - 1)).join('');
+    return result;
 }
+// Get message offset
+const offset = input.slice(0, 7) | 0;
+console.log({
+	offset
+})
+// Repeat input X
+let inputNums = input.split('');
 const phaseCount = 100;
-// Make all base patterns
-const patterns = Array(input.length).fill(0).map((n, iteration) => getBasePattern(input.length, iteration));
-
-for(let phase = 0; phase < phaseCount; phase++) {
-    console.log({
-        phase
-    })
-    input = getPhase(input, patterns)
-}
 
 console.log({
-    result: input.slice(0, 8)
+	inputLength: input.length,
+})
+// Make all base patterns
+for(let phase = 0; phase < phaseCount; phase++) {
+	inputNums = getPhase(inputNums);
+}
+
+const resultInput = Array(10000).fill(inputNums.join('')).join('');
+
+console.log({
+    result: resultInput.slice(offset, offset + 8)
 })
