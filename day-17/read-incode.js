@@ -76,7 +76,8 @@ const makeProgram = intcode => {
 
 	const inputOperation = makeOperation((intcode, pointer, params) => {
 		const [inputAddress] = params;
-		const inputValue = sanitizeParam(inputBuffer.pop());
+		const inputValue = sanitizeParam(inputBuffer.shift());
+		// console.log(`INPUT ${inputValue}`)
 		intcode[inputAddress] = inputValue
 
 		return {
@@ -85,6 +86,7 @@ const makeProgram = intcode => {
 	});
 	const outputOperation = makeOperation((intcode, pointer, params) => {
 		const [outputAddress] = params;
+		// console.log('OUTPUT')
 		const output = intcode[outputAddress];
 		outputBuffer.push(output.toString());
 		return {
@@ -189,9 +191,9 @@ const makeProgram = intcode => {
 		};
 	};
 
-	const run = input => {
+	const run = (...input) => {
 		if(input !== undefined) {
-			inputBuffer.push(input);
+			inputBuffer.push(...input);
 		}
 		while(currentState === STATE.ON) {
 			const { operation, modes, opcode } = getInstructions(intcode[pointer]);
