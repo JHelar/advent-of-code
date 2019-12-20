@@ -1,9 +1,15 @@
-const clonedeep = require('lodash.clonedeep')
+const NodeCache = require('node-cache');
+
 const { getMapKey } = require('./get-map');
 const { DIRECTIONS, posFromDirection } = require('./direction');
 
+const resultCache = new NodeCache({
+	stdTTL: 0,
+	checkperiod: 0
+})
+
 const getDistance = (onePoint, anotherPoint) => Math.sqrt(Math.pow(anotherPoint.x - onePoint.x, 2) + Math.pow(anotherPoint.y - onePoint.y, 2));
-const sortByCost = (a, b) => (a.g + a.node.h) - (b.g + b.node.h);
+const sortByCost = finishNode => (a, b) => (a.g + getDistance(a.node, finishNode)) - (b.g + getDistance(b.node, finishNode));
 const getSteps = (startPath, startNode) => {
     let count = 1;
     let lookAt = startPath.prev;
@@ -24,29 +30,56 @@ const getNeighBours = (node, theMap) => {
     return [potentialNorth, potentialSouth, potentialEast, potentialWest].map(pos => theMap[getMapKey(pos)]).filter(n => n ? n.value !== '#' : false);
 }
 
-const aStar = (nodes, playerNode, finishNode, theMap) => {
-    // Set g and h costs
-    nodes.forEach(node => {
-        node.h = getDistance(node, finishNode);
-    })
+const getPotentialResult = (playerNode, finishNode) => {
+	const startKey = getMapKey(playerNode);
+	const finishKey = getMapKey(finishNode);
+	const keys = playerNode.keys.reduce((keySum, k) => keySum + k, 0)
+	let result = resultCache.get(startKey+finishKey+keys);
+	if(!result) {
+		result = resultCache.get(finishKey+startKey+keys);
+	}
+	return result;
+}
+
+const setPotentialResult = (playerNode, finishNode, value) => {
+	const startKey = getMapKey(playerNode);
+	const finishKey = getMapKey(finishNode);
+	const keys = playerNode.keys.reduce((keySum, k) => keySum + k.value, 0)
+	
+	let result = resultCache.set(startKey+finishKey+keys, value);
+	return result;
+}
+
+const aStar = (playerNode, finishNode, theMap) => {
+	const result = getPotentialResult(playerNode, finishNode);
+	if(result) {
+		return result;
+	}
+    // Set g and h cost
     const visited = [];
     let priority = [{
         prev: undefined,
         node: playerNode,
         g: 0
-    }];
+	}];
+	
     while (priority.length > 0) {
         const lookUp = priority.shift();
 
         if (lookUp.node.value === finishNode.value) {
-            return {
+            const searchResult = {
                 steps: getSteps(lookUp, playerNode),
                 node: lookUp.node
-            }
+			};
+			setPotentialResult(playerNode, finishNode, searchResult);
+			return searchResult;
         }
         const neighbours = getNeighBours(lookUp.node, theMap);
         neighbours.forEach(n => {
-            if (!n.isDoor || playerNode.keys.includes(n.value)) {
+            if (
+				(!n.isKey || (n.value === finishNode.value || playerNode.keys.includes(n.value))) && // If key let it be this key or an allready taken key
+				(!n.isDoor || playerNode.keys.includes(n.value))) // If door make sure we have the key
+			{
                 const prio = priority.find(pn => pn === n);
                 const g = getDistance(lookUp.node, n) + lookUp.g;
                 if (prio) {
@@ -63,15 +96,22 @@ const aStar = (nodes, playerNode, finishNode, theMap) => {
                 }
             }
         })
-        priority.sort(sortByCost);
+        priority.sort(sortByCost(finishNode));
         visited.push(lookUp)
     }
     return null;
 }
 const getAvailableKeys = (nodes, playerNode, theMap) => {
-    const nodeCopy = clonedeep(nodes);
-    const potentialKeyNodes = nodeCopy.filter(node => node.isKey && !playerNode.keys.includes(node.value));
-    return potentialKeyNodes.map(key => aStar(nodeCopy, playerNode, key, theMap)).filter(result => result ? true : false);
+    const potentialKeyNodes = nodes.reduce((keys, node) => {
+		if(node.isKey && !playerNode.keys.includes(node.value)) {
+			const result = aStar(playerNode, node, theMap);
+			if(result) {
+				keys.push(result);
+			}
+		}
+		return keys;
+	}, []);
+    return potentialKeyNodes;
 }
 
 module.exports = {
