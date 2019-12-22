@@ -4,87 +4,109 @@ const getHtmlMap = require('./get-html-map');
 const { getAvailableKeys } = require('./a-star');
 
 let KEY_COUNT = 0;
-let SHORTEST_CHAIN = Infinity;
 let CHAIN_MAP = {};
+let KEY_MAP = [];
 
-const getChainKey = (playerNode, keys) =>
-	getMapKey(playerNode) +
-	keys.reduce((sum, key, index) => sum + key.value, 0);
+const getChainKey = (playerNode, keys) => {
+	const playerKey = getMapKey(playerNode);
+	const keyMap = [...KEY_MAP];
+	keys.forEach(key => {
+		keyMap[key.node.value] = 1
+	})
+	return `${playerKey}${keyMap.join('')}`;
+}
 
-const getStepCount = chain => chain.reduce((sum, step) => sum + step.steps, 0);
-const runWithKeys = (nodes, keys, theMap, allChains) => {
-	const nodesCopy = clonedeep(nodes);
-	const playerNode = nodesCopy.find(node => node.isPlayer);
-	Object.assign(playerNode, {
-		keys: keys.map(key => key.node.value)
-	});
-	const closestKeys = getAvailableKeys(nodesCopy, playerNode, theMap);
-	if (!closestKeys.length) {
-		if (keys.length === KEY_COUNT) {
-			const chainLength = getStepCount(keys);
-			if (chainLength < SHORTEST_CHAIN) {
-				SHORTEST_CHAIN = chainLength;
-				console.log({
-					SHORTEST_CHAIN,
-					keys: keys.map(k => k.node.charValue).join(','),
-					date: new Date().toTimeString()
-				});
-				allChains.push(keys);
-			} else {
-				console.log({
-					chainLength,
-					keys: keys.map(k => k.node.charValue).join(','),
-					date: new Date().toTimeString()
-				});
+const getStepScores = (theMap, playerPositions) => {
+	let playerIndex = 0;
+	let keys = [];
+	let steps = 0
+	while(true) {
+		const playerPosition = playerPositions[playerIndex];
+		
+		const stepScore = getStepScore(theMap, playerPosition, keys);
+		keys = stepScore.keys;
+		steps += stepScore.steps;
+		playerPositions[playerIndex] = stepScore.playerPosition;
+
+		playerIndex = (playerIndex + 1) % playerPositions.length;
+
+		if(keys.length === KEY_COUNT) {
+			return {
+				steps,
+				keys
 			}
-			// console.log('Chain done, chain count: ' + allChains.length)
+		}
+	}
+}
+
+const getStepScore = (theMap, playerPosition, keys) => {
+	const storedResult = CHAIN_MAP[getChainKey(playerPosition, keys)];
+	if (storedResult) {
+		return storedResult;
+	}
+
+	Object.assign(playerPosition, {
+		keys: keys.map(key => key.node.value)
+	})
+
+	const closestKeys = getAvailableKeys(
+		playerPosition,
+		theMap
+	);
+
+	const minCount = closestKeys.reduce((best, newKey) => {
+		const newKeys = [...keys, newKey];
+		const keyScore = getStepScore(theMap, { x: newKey.node.x, y: newKey.node.y }, newKeys);
+		if(best.steps > (keyScore.steps + newKey.steps)) {
+			return {
+				pickedKey: newKey,
+				keys: keyScore.keys,
+				playerPosition: keyScore.playerPosition,
+				steps: keyScore.steps + newKey.steps,
+			};
+		}
+		return best;
+	}, { steps: Infinity, keys: [] })
+
+	const chainKey = getChainKey(playerPosition, keys);
+	if(minCount.steps === Infinity) {
+		CHAIN_MAP[chainKey] = {
+			steps: 0,
+			keys,
+			playerPosition
+		};
+		return {
+			steps: 0,
+			keys,
+			playerPosition
 		}
 	} else {
-		closestKeys.forEach(key => {
-			playerNode.x = key.node.x;
-			playerNode.y = key.node.y;
-			const newKeys = [...keys, key];
-			const remainingKeys = nodes.filter(
-				node =>
-					node.isKey &&
-					!newKeys.some(nk => nk.node.value === node.value)
-			);
-			const chainCost = CHAIN_MAP[getChainKey(playerNode, remainingKeys)];
-			const myChainCost = getStepCount(newKeys);
-			if (!chainCost || myChainCost < chainCost) {
-				CHAIN_MAP[getChainKey(playerNode, remainingKeys)] = myChainCost;
-				// Only continue if it is worth it
-				if (myChainCost < SHORTEST_CHAIN) {
-					runWithKeys(nodesCopy, [...keys, key], theMap, allChains);
-				}
-			}
-		});
+		CHAIN_MAP[chainKey] = minCount;
+		return {
+			steps: minCount.steps,
+			keys: minCount.keys,
+			playerPosition: minCount.playerPosition
+		}
 	}
-};
-const input = require('../utils').getStringFromFile('./day-18/input.txt');
+}
+
+const input = require('../utils').getStringFromFile('./day-18/test.txt');
 const theMap = getMap(input);
 const doc = getHtmlMap(Object.values(theMap));
 
 require('fs').writeFileSync('./day-18/map.html', doc);
 
 const nodes = Object.values(theMap);
-let allChains = [];
 KEY_COUNT = nodes.filter(node => node.isKey).length;
 console.log({
 	KEY_COUNT
 });
-runWithKeys(nodes, [], theMap, allChains);
-console.log('Done with result');
-// let allChains = [];
-// result.map(step => getChainSteps(step, [], allChains));
-allChains = allChains.map(chain => {
-	return chain.reduce(
-		(newChain, step) => {
-			newChain.keys.push(step.node.charValue);
-			newChain.steps = newChain.steps + step.steps;
-			return newChain;
-		},
-		{ keys: [], steps: 0 }
-	);
-});
-require('fs').writeFileSync('./day-18/result.json', JSON.stringify(allChains));
+KEY_MAP = new Array(KEY_COUNT).fill(0);
+
+const players = nodes.filter(n => n.isPlayer);
+console.time('Took')
+const score = getStepScores(theMap, players.map(({ x, y }) => ({ x, y })));//getStepScore(theMap, players.map(({ x, y }) => ({ x, y }))[0], []);
+console.log('Done');
+console.log(score.steps)
+console.log(score.keys.map(k => k.node.charValue))
+console.timeEnd('Took')

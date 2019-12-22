@@ -52,7 +52,7 @@ const setPotentialResult = (playerNode, finishNode, value) => {
 
 const aStar = (playerNode, finishNode, theMap) => {
 	const result = getPotentialResult(playerNode, finishNode);
-	if(result) {
+	if(result !== undefined) {
 		return result;
 	}
     // Set g and h cost
@@ -99,10 +99,11 @@ const aStar = (playerNode, finishNode, theMap) => {
         priority.sort(sortByCost(finishNode));
         visited.push(lookUp)
     }
+    setPotentialResult(playerNode, finishNode, null);
     return null;
 }
-const getAvailableKeys = (nodes, playerNode, theMap) => {
-    const potentialKeyNodes = nodes.reduce((keys, node) => {
+const getAvailableKeys = (playerNode, theMap) => {
+    const potentialKeyNodes = Object.values(theMap).reduce((keys, node) => {
 		if(node.isKey && !playerNode.keys.includes(node.value)) {
 			const result = aStar(playerNode, node, theMap);
 			if(result) {
