@@ -1,7 +1,7 @@
 import { readFileWithSeparator } from "../utils"
 
 const createFinder = (lowerId: string, upperStart: number) => {
-    const finder = (id: string[], upper: number, lower: number) => {
+    const finder = (id: string[], upper: number, lower: number): number => {
         const lookup = id.shift()
         if(!id.length) {
             if(lookup === lowerId) return lower

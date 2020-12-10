@@ -34,7 +34,7 @@ const parseRule = (rule: string) => {
     }) : []).reduce((acc, container) => {
         acc[container.color] = container
         return acc
-    }, {})
+    }, {} as Record<string, Container>)
 
     const bag: Bag = {
         mainColor: main,
@@ -74,10 +74,10 @@ export default () => {
         const containedIn = rules.filter(r => rule.mainColor in r.containers)
         rule.childOf = containedIn
     })
-    const bagMap: Record<string, Bag> = rules.reduce((bags, bag) => {
+    const bagMap = rules.reduce((bags, bag) => {
         bags[bag.mainColor] = bag
         return bags
-    }, {})
+    }, {} as Record<string, Bag>)
     
     const shinyGoldBag = bagMap['shiny gold']
     const cost = createBag(shinyGoldBag, bagMap)

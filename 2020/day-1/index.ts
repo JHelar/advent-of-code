@@ -3,7 +3,7 @@ import { readFileWithSeparator } from "../utils";
 
 export default () => {
     const input = readFileWithSeparator('day-1/input.txt', '\n').map(i => parseInt(i))
-    const values = {}
+    const values: Record<number, number> = {}
 
     for (const value of input) {
         const lookFor = 2020 - value

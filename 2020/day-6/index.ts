@@ -2,7 +2,7 @@ import { readFileByLine } from "../utils"
 
 const readGroups = async () => {
     const groups = []
-    let currentGroup = {}
+    let currentGroup: Record<string, number> = {}
     let memberCount = 0
     await readFileByLine('day-6/input.txt', (line) => {
         if(line.length) {

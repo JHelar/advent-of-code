@@ -35,11 +35,10 @@ export default () => {
     let rating = 0
     const adapterBucket: Record<number, number[]> = {}
     setAdaptersForRating(adapters, 0, 0, adapterBucket)
-    console.log('Set ratings')
     const combinations: Record<number, number> = {}
     const adapterKeys = Object.keys(adapterBucket).reverse()
     
-    for (const adapter of adapterKeys) {
+    for (const adapter of adapterKeys.map(a => parseInt(a))) {
         let adapterCombinations = 0
         adapterBucket[adapter].forEach(rating => {
             adapterCombinations += combinations[rating]

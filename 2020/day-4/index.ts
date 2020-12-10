@@ -36,7 +36,7 @@ const FIELDS = {
 
 const getPassports = async () => {
     const passports = []
-    let currentPassport = {}
+    let currentPassport: Record<string, string> = {}
 
     await readFileByLine('day-4/input.txt', (line) => {
         if(line.length) {
@@ -52,7 +52,7 @@ const getPassports = async () => {
     return passports
 }
 
-const validatePassport = (passport) => {
+const validatePassport = (passport: Record<string, string>) => {
     const entries = Object.entries(FIELDS)
     for (const [field, validate] of entries) {
         if(!(field in passport) || !validate(passport[field])) {

@@ -7,14 +7,14 @@ const createMapTraverser = (map: string[][]) => {
     const mapWidth = map[0].length
     const mapHeight = map.length
 
-    const convertToMapCoordinate = (x, y) => {
+    const convertToMapCoordinate = (x: number, y: number) => {
         const mapX = x % mapWidth
         const mapY = y % mapHeight
 
         return [mapX, mapY]
     }
 
-    const getMapTileAt = (x, y) => {
+    const getMapTileAt = (x: number, y: number) => {
         const [mapX, mapY] = convertToMapCoordinate(x, y)
         return map[mapY][mapX]
     }
