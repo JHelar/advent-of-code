@@ -7,6 +7,9 @@ import day6 from './day-6'
 import day7 from './day-7'
 import day8 from './day-8'
 import day9 from './day-9'
+import day10 from './day-10'
+
+export type Day = () => any
 
 export default {
     day1,
@@ -17,5 +20,6 @@ export default {
     day6,
     day7,
     day8,
-    day9
+    day9,
+    day10
 }
