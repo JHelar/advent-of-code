@@ -1,10 +1,12 @@
-import Days, { Day } from './days'
-
 const [file, path, day] = process.argv
 
+type Day = {
+    default: () => any
+}
+
 ;(async () => {
-    const solution = (Days as Record<string, Day>)[day]
-    if(solution) {
-        console.log(await solution())
+    const runner = require(`./${day}`) as Day
+    if(runner) {
+        console.log(await runner.default())
     }
 })()
