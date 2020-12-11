@@ -1,4 +1,3 @@
-import { constants } from 'buffer'
 import { readFileWithSeparator } from '../utils'
 
 const part1 = (adapters: number[]) => {
