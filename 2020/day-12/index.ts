@@ -12,8 +12,8 @@ interface Command {
 }
 
 interface Position {
-    horizontal: number
-    vertical: number
+    x: number
+    y: number
 }
 
 const parseCommand = (input: string) => ({
@@ -21,63 +21,56 @@ const parseCommand = (input: string) => ({
     units: parseInt(input.slice(1))
 } as Command)
 
-const rotate = ({ horizontal, vertical }: Position, B: Position, angle: number): Position => {
-    const rad = (Math.PI / 180) * angle
-    const newX = Math.cos(rad) * horizontal - vertical * Math.sin(rad)
-    const newY = Math.sin(rad) * horizontal - vertical * Math.cos(rad)
-    return {
-        horizontal: Math.round(newX),
-        vertical: Math.round(newY),
-    }
-}
-
 export default () => {
     const commands = readFileWithSeparator('day-12/input.txt', '\n').map(parseCommand)
 
     let shipPosition: Position = {
-        horizontal: 0,
-        vertical: 0
+        x: 0,
+        y: 0
     }
 
     let waypointPosition: Position = {
-        horizontal: 10,
-        vertical: 1
+        x: 10,
+        y: 1
     }
 
     commands.forEach(({ action, units }) => {
-        console.log({
-            waypointPosition,
-            shipPosition,
-            action
-        })
+        let nwx, nwy;
         switch(action) {
             case 'N':
-                waypointPosition.vertical += units
+                waypointPosition.y += units
                 break
             case 'S':
-                waypointPosition.vertical -= units
+                waypointPosition.y -= units
                 break
             case 'E':
-                waypointPosition.horizontal += units
+                waypointPosition.x += units
                 break
             case 'W':
-                waypointPosition.horizontal -= units
+                waypointPosition.x -= units
                 break
             case 'L':
-                waypointPosition = rotate(waypointPosition, shipPosition, units)
+                nwx = waypointPosition.x * Math.cos(units * Math.PI / 180) - waypointPosition.y * Math.sin(units * Math.PI / 180);
+                nwy = waypointPosition.y * Math.cos(units * Math.PI / 180) + waypointPosition.x * Math.sin(units * Math.PI / 180);
+                waypointPosition.x = nwx
+                waypointPosition.y = nwy
                 break
             case 'R':
-                waypointPosition = rotate(waypointPosition, shipPosition, units * -1)
+                nwx = waypointPosition.x * Math.cos(units * Math.PI / 180) + waypointPosition.y * Math.sin(units * Math.PI / 180);
+                nwy = waypointPosition.y * Math.cos(units * Math.PI / 180) - waypointPosition.x * Math.sin(units * Math.PI / 180);
+                waypointPosition.x = nwx
+                waypointPosition.y = nwy
                 break
             case 'F':
-            default:
-                shipPosition.horizontal += units * waypointPosition.horizontal
-                shipPosition.vertical += units * waypointPosition.vertical
+                const moveX = units * waypointPosition.x
+                const moveY = units * waypointPosition.y
+                shipPosition.x += moveX
+                shipPosition.y += moveY
                 break
 
         }
     })
 
 
-    return Math.abs(shipPosition.horizontal) + Math.abs(shipPosition.vertical)
+    return Math.abs(shipPosition.x) + Math.abs(shipPosition.y)
 }
