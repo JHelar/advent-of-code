@@ -10,9 +10,12 @@ const RPAREN = ')'
 const INTEGER = 'number'
 const EOF = 'EOF'
 
-const OPERATIONS = [
+const HIGHEST_PRIO_OPERATIONS = [
+  ADD
+]
+
+const PRIO_OPERTATIONS = [
   MUL,
-  ADD,
   SUB,
   DIV
 ]
@@ -44,23 +47,30 @@ const BinOp = (left: Token | BinOp, op: Token, right: Token | BinOp): BinOp => (
 })
 
 const createLexer = (value: string) => {
-  const input = value.split(' ').reduce((acc, i) => {
-    if(i.includes('(')) return [...acc, ...i.replace('(', '( ').split(' ')]
-    if(i.includes(')')) return [...acc, ...i.replace(')', ' )').split(' ')]
-    return [
-      ...acc,
-      i
-    ]
-  },[] as string[])
-  let tokenPos = -1
+  const input = value.split('').filter(i => i !== ' ')
+  let tokenPos = 0
+
+  const integer = () => {
+    let int = '' 
+    let value = input[tokenPos]
+    while(!isNaN(value as any)) {
+      int += value
+      tokenPos++
+      value = input[tokenPos]
+    }
+    return parseInt(int)
+  }
+
   const nextToken = () => {
-    tokenPos++
     const value = input[tokenPos]
 
     if(!value) return Token(EOF, -1)
 
-    if(!isNaN(value as any)) return Token(INTEGER, value)
-    else return Token(value as TokenType, value)
+    if(isNaN(value as any)) {
+      tokenPos++
+      return Token(value as TokenType, value)
+    }
+    return Token(INTEGER, integer())
   }
 
 
@@ -76,9 +86,6 @@ const createAST = (value: string) => {
 
   const eat = () => {
     currentToken = lexer.nextToken()
-    console.log({
-      currentToken
-    })
     return currentToken
   }
 
@@ -99,9 +106,9 @@ const createAST = (value: string) => {
   const term = (): Token | BinOp => {
     let node = factor()
 
-    while(OPERATIONS.includes(currentToken.type)) {
+    while(HIGHEST_PRIO_OPERATIONS.includes(currentToken.type)) {
       const token = currentToken
-      if(OPERATIONS.includes(token.type)) {
+      if(HIGHEST_PRIO_OPERATIONS.includes(token.type)) {
         eat()
       }
       node = BinOp({...node}, {...token}, {...factor()})
@@ -111,7 +118,17 @@ const createAST = (value: string) => {
   } 
 
   const expr = () => {
-    return term()
+    let node = term()
+
+    while(PRIO_OPERTATIONS.includes(currentToken.type)) {
+      const token = currentToken
+      if(PRIO_OPERTATIONS.includes(token.type)) {
+        eat()
+      }
+      node = BinOp({...node}, {...token}, {...term()})
+    }
+
+    return node
   }
 
   const parse = () => {
@@ -121,14 +138,38 @@ const createAST = (value: string) => {
   return {
     parse
   }
+} 
+
+const solve = (node: BinOp | Token): number => {
+  if('type' in node) {
+    if(typeof node.value === 'number') {
+      return node.value
+    }
+  }
+  const binOp = node as BinOp
+  const left = solve(binOp.left)
+  const right = solve(binOp.right)
+
+  switch(binOp.op.type) {
+    case ADD:
+      return left + right
+    case SUB:
+      return left - right
+    case MUL:
+      return left * right
+    case DIV:
+      return left / right
+    default:
+      console.log('NOT VALID OPERATOR')
+      return Infinity
+  }
 }
 
 export default async () => {
-  const ast = readFileWithSeparator('day-18/test.txt', '\n').map(input => createAST(input))[0]
-  if(ast) {
+  return readFileWithSeparator('day-18/input.txt', '\n').map(input => createAST(input)).reduce((sum, ast) => {
     const tree = ast.parse()
-
-    console.log(tree)
-  }
+    const result = solve(tree)
+    return sum + result
+  }, 0)
   
 }
