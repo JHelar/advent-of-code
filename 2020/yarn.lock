@@ -7,6 +7,11 @@
   resolved "https://registry.yarnpkg.com/2d-array-rotation/-/2d-array-rotation-2.1.1.tgz#6d40cba6ffc6a8a497c4997c4f3ba85070c8b234"
   integrity sha512-rJ8rp+8uzHzkbHwV1mgMxdZCGwtg91+QL77gD6PZUr2YXO2VbVcsd2zxxeAsC4Bvv9I0A4OrUOwgj89iSN0RHQ==
 
+"@datastructures-js/linked-list@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@datastructures-js/linked-list/-/linked-list-2.0.3.tgz#aa6d7d3460322bdcf4d624b41ba2cf1cfcf455dd"
+  integrity sha512-0+j76V593ZEKrsKEnuDsfWfmW5nxnLOKodrcccFMMqrs7tH9C/opXUjIQrpD7ATnPnvgV0jUEbJ1Siyp2gvD/Q==
+
 "@types/node@^14.14.14":
   version "14.14.14"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.14.tgz#f7fd5f3cc8521301119f63910f0fb965c7d761ae"
