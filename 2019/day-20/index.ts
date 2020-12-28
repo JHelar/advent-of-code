@@ -6,35 +6,35 @@ const labelPerRow: Record<number, { name: string[], rowIndex: number, colIndex: 
 const labelPerColumn: Record<number, { name: string[], rowIndex: number, colIndex: number }[]> = {}
 const stringMap = fs.readFileSync('day-20/test.txt').toString().split('\n').map((row, rowIndex) => {
     const column: string[] = []
-    row.split('').forEach((c, cIndex) => {
+    row.split('').forEach((c, colIndex) => {
         if(c === '.' || c === '#') {
             column.push(c)
         } else if(c !== ' ') {
-            if(!(cIndex in labelPerColumn)) {
-                labelPerColumn[cIndex] = []
+            if(!(colIndex in labelPerColumn)) {
+                labelPerColumn[colIndex] = []
             }
             
-            const colLabel = labelPerColumn[cIndex].find(c => c.rowIndex + 1 === rowIndex)
+            const colLabel = labelPerColumn[colIndex].find(c => c.rowIndex + 1 === rowIndex)
             if(colLabel) {
                 colLabel.name.push(c)
             } else {
-                labelPerColumn[cIndex].push({
+                labelPerColumn[colIndex].push({
                     name: [c],
-                    rowIndex: rowIndex,
-                    colIndex: cIndex,
+                    rowIndex,
+                    colIndex,
                 })
             }
 
             if(!(rowIndex in labelPerRow)) {
                 labelPerRow[rowIndex] = []
             }
-            const rowLabel = labelPerRow[rowIndex].find(r => r.colIndex + 1 === cIndex)
+            const rowLabel = labelPerRow[rowIndex].find(r => r.colIndex + 1 === colIndex)
             if(rowLabel) {
                 rowLabel.name.push(c)
             } else {
                 labelPerRow[rowIndex].push({
                     name: [c],
-                    colIndex: cIndex,
+                    colIndex,
                     rowIndex
                 })
             }
@@ -46,11 +46,11 @@ const stringMap = fs.readFileSync('day-20/test.txt').toString().split('\n').map(
 const labels = [...Object.values(labelPerColumn).flatMap((labels) => labels.map(({ name, colIndex, rowIndex }) => ({
     name: name.join(''),
     x: colIndex - 2,
-    y: rowIndex 
+    y: rowIndex + (rowIndex + 2 < stringMap.length && stringMap[rowIndex + 2][colIndex - 2] ? 2 : rowIndex - 1 > 0 && stringMap[rowIndex - 1][colIndex - 2] ? -1 : 0)
 }))),...Object.values(labelPerRow).flatMap((labels) => labels.map(({ name, colIndex, rowIndex }) => ({
     name: name.join(''),
-    x: colIndex,
-    y: rowIndex - 2 
+    x: colIndex + (colIndex + 2 < stringMap[0].length && stringMap[rowIndex - 2][colIndex + 2] ? 2 : colIndex - 1 > 0 && stringMap[rowIndex - 2][colIndex - 1] ? -1 : 0),
+    y: rowIndex - 2
 })))].filter(({ name }) => name.length === 2)
 
 const map = stringMap.reduce((map, row, rowIndex) => {
