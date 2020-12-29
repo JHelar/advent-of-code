@@ -14,7 +14,7 @@ export const toPixel = (node: Node) =>
 			? "#333"
 			: "black"
 	};--color-text:${node instanceof Portal ? "blue" : "black"}">${
-		node instanceof Portal ? node.name : ""
+		node instanceof Portal ? node.name : node.road ? node.level : ""
 	}</span>`;
 export const toHtmlDocument = (
 	pixels: string[],
@@ -45,6 +45,6 @@ export const toHtmlDocument = (
     </style>
 </head>
 <body>
-    ${pixels}
+    ${pixels.join('')}
 </body>
 </html>`;

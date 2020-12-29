@@ -1,4 +1,4 @@
-export const getNodeKey = (x: number, y: number) => `(${x},${y})`;
+export const getNodeKey = (x: number, y: number, level: number = 0) => `(${x},${y},${level})`;
 
 export class Node {
 	name: string;
@@ -8,6 +8,7 @@ export class Node {
 	x: number;
 	y: number;
 	h = 0;
+	level = 0;
 	neighbours: Node[] = [];
 	visited: boolean = false;
 
@@ -21,7 +22,7 @@ export class Node {
 	}
 
 	getKey() {
-		return getNodeKey(this.x, this.y);
+		return getNodeKey(this.x, this.y, this.level);
 	}
 
 	toString() {
@@ -32,8 +33,11 @@ export class Node {
 }
 
 export class Portal extends Node {
+	portalExit: Portal | null
+
 	constructor(x: number, y: number, label: string) {
 		super(x, y, ".");
 		this.name = label;
+		this.portalExit = null
 	}
 }
