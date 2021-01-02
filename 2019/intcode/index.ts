@@ -1,3 +1,5 @@
+import { runInNewContext } from "vm"
+
 const OP_CODES = {
     HALT: 99,
     ADD: 1,
@@ -216,9 +218,10 @@ export class IntProgram {
         })
     }
 
-    exec(input: bigint[]) {
+    exec(input: bigint[], output: bigint[] = []) {
         this.advanceProgram()
         let result: number | bigint = Infinity
+        this.running = true
         switch(this.opCode) {
             case OP_CODES.ADD:
                 this.operator.add()
@@ -242,10 +245,15 @@ export class IntProgram {
                 this.operator.adjust()
                 break
             case OP_CODES.INPUT:
-                this.operator.input(input.shift()!)
+                if(input.length) {
+                    this.operator.input(input.shift()!)
+                } else {
+                    this.running = false
+                }
                 break
             case OP_CODES.OUTPUT:
                 result = this.operator.output()
+                output.push(result)
                 break
             case OP_CODES.HALT:
                 this.running = false
