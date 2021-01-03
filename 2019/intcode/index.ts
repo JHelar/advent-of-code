@@ -1,5 +1,3 @@
-import { runInNewContext } from "vm"
-
 const OP_CODES = {
     HALT: 99,
     ADD: 1,
@@ -113,7 +111,7 @@ class Operator {
 }
 
 export class IntProgram {
-    memory: Map<bigint, bigint>
+    memory: Record<string, bigint>
     originInput: string
     cursor: bigint
     relativeBase: bigint
@@ -124,7 +122,7 @@ export class IntProgram {
 
     constructor(input: string) {
         this.originInput = input
-        this.memory = new Map()
+        this.memory = {}
         this.reset()
         this.cursor = 0n
         this.relativeBase = 0n
@@ -136,11 +134,11 @@ export class IntProgram {
 
     getValueAt(address: bigint){
         if(address < 0) throw new Error(`Tried to get value from invalid address: ${address}, opcode: ${this.opCode}, cursorAt: ${this.cursor}, paramModes: ${this.paramModes}`)
-        if(!this.memory.has(address)) {
-            this.memory.set(address, 0n)
+        if(!(address.toString() in this.memory)) {
+            this.memory[address.toString()] = 0n
             return 0n
         }
-        return this.memory.get(address)!
+        return this.memory[address.toString()]!
     }
 
     getValueFromPointerAt(address: bigint) {
@@ -154,7 +152,7 @@ export class IntProgram {
     }
 
     setValueAt(value: bigint, address: bigint) {
-        this.memory.set(address, value)
+        this.memory[address.toString()] = value
     }
 
     setValueFromPointerAt(value: bigint, address: bigint) {
@@ -212,9 +210,9 @@ export class IntProgram {
     }
 
     initializeMemory() {
-        this.memory = new Map()
+        this.memory = {}
         this.originInput.split(',').map(i => BigInt(i)).forEach((i, index) => {
-            this.memory.set(BigInt(index), i)
+            this.memory[index.toString()] = i
         })
     }
 
