@@ -31,6 +31,7 @@ const indexFileContents = await renderFile(
   { theDay },
 );
 await Deno.writeTextFile(normalize(`./${dirName}/index.ts`), indexFileContents);
+await Deno.writeTextFile(normalize(`./${dirName}/input.txt`), "");
 
 const daysFile = await Deno.readTextFile(normalize("./days.ts"));
 await Deno.writeTextFile(
