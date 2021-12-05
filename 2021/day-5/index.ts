@@ -1,4 +1,6 @@
 // INPUT URL: https://adventofcode.com/2021/day/5/input
+import { renderFile } from "https://deno.land/x/mustache/mod.ts";
+
 type Point = [number, number];
 type Range = [Point, Point];
 type Ranges = Array<Range>;
@@ -54,6 +56,19 @@ const getRanges = async () => {
   return ranges;
 };
 
+const printMap = async (map: SeaMap, maxX: number, maxY: number) => {
+  const outputContent = await renderFile("./day-5/output.mustache", {
+    map: JSON.stringify(map),
+    maxX,
+    maxY,
+    maxValue: Object.values(map).reduce(
+      (max, value) => value > max ? value : max,
+      0,
+    ),
+  });
+  await Deno.writeTextFile("./day-5/output.html", outputContent);
+};
+
 export const part1 = async () => {
   const ranges = await getRanges();
   const map: SeaMap = {};
@@ -76,7 +91,17 @@ export const part2 = async () => {
   const ranges = await getRanges();
   const map: SeaMap = {};
 
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
   for (const range of ranges) {
+    const [[x1, y1], [x2, y2]] = range;
+    const localXMax = Math.max(x1, x2);
+    const localYMax = Math.max(y1, y2);
+
+    if (localXMax > maxX) maxX = localXMax;
+    if (localYMax > maxY) maxY = localYMax;
+
     setRangeToMap(map, range);
   }
 
@@ -84,6 +109,8 @@ export const part2 = async () => {
     (sum, value) => value > 1 ? sum + 1 : sum,
     0,
   );
+
+  printMap(map, maxX, maxY);
 
   return maxCount;
 };

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 5</title>
+    <style>
+        /* #board {
+            --tile-size: 50px;
+            display: grid;
+            grid-template-columns: repeat(var(--cols), var(--tile-size));
+            grid-template-rows: repeat(var(--rows), var(--tile-size));
+        } */
+        body,
+        html {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="board"></canvas>
+    <script>
+        //  y = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+        const TILE_SIZE = 1;
+        const map = JSON.parse("{{map}}".replace(/&quot;/g, '"'))
+        const maxX = {{maxX}}
+        const maxY = {{maxY}}
+        const maxValue = {{maxValue}}
+        
+        const interpolate = (x, [x1, y1], [x2, y2]) => y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+        const pointToKey = ([x, y]) => `(${x},${y})`;
+        const canvas = document.getElementById('board')
+        const context = canvas.getContext('2d')
+        
+        canvas.width = maxX + TILE_SIZE
+        canvas.height = maxY + TILE_SIZE
+
+        context.fillStyle = "darkblue";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        const createTile = ([x, y], value) => {
+            if(value) {
+                const val = (value / maxValue)
+                context.fillStyle = `rgba(${interpolate(val, [1, 10], [maxValue, 197])}, ${interpolate(val, [1, 10], [maxValue, 66])}, ${interpolate(val, [1, 10], [maxValue, 69])}, 1)`
+                context.fillRect(x - TILE_SIZE / 2, y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+            }
+        }
+
+        for (let y = 0; y <= maxY; y++) {
+            for (let x = 0; x <= maxX; x++) {
+                const key = pointToKey([x, y])
+                createTile([x, y], map[key])
+            }
+        }
+    </script>
+    
+</body>
+</html>
