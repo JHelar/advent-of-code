@@ -28,8 +28,11 @@
         const maxY = {{maxY}}
         const maxValue = {{maxValue}}
         
-        const interpolate = (x, [x1, y1], [x2, y2]) => y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
-        const pointToKey = ([x, y]) => `(${x},${y})`;
+        const interpolate = (x) => ([x1, y1]) => ([x2, y2]) => y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+        const keyToPoint = (key) => {
+            const [xs, ys] = key.split(',')
+            return [Number(xs.replace('(', '')), Number(ys.replace(')', ''))]
+        }
         const canvas = document.getElementById('board')
         const context = canvas.getContext('2d')
         
@@ -41,18 +44,28 @@
 
         const createTile = ([x, y], value) => {
             if(value) {
-                const val = (value / maxValue)
-                context.fillStyle = `rgba(${interpolate(val, [1, 10], [maxValue, 197])}, ${interpolate(val, [1, 10], [maxValue, 66])}, ${interpolate(val, [1, 10], [maxValue, 69])}, 1)`
+                const interpolateValue = interpolate(value)([1, 0])
+                const [r, g, b] = [[maxValue, 197 - 30], [maxValue, 66 - 121], [maxValue, 69 - 44]].map(interpolateValue)
+                context.fillStyle = `rgba(${30 + r}, ${121 + g}, ${44 + b}, 1)`
                 context.fillRect(x - TILE_SIZE / 2, y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
             }
         }
 
-        for (let y = 0; y <= maxY; y++) {
-            for (let x = 0; x <= maxX; x++) {
-                const key = pointToKey([x, y])
-                createTile([x, y], map[key])
+        const showFrame = (frames) => {
+            if(!frames.length) return
+
+            const lookAt = frames.slice(0, 60)
+            const rest = frames.slice(60)
+            for(const frame of lookAt) {
+                const [key, value] = frame
+                const point = keyToPoint(key)
+                createTile(point, value)
             }
+            window.requestAnimationFrame(() => showFrame(rest))
         }
+
+        showFrame(Object.entries(map))
+
     </script>
     
 </body>
