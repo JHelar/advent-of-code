@@ -1,25 +1,4 @@
 // INPUT URL: https://adventofcode.com/2021/day/8/input
-/**
- *
-   0:      1:      2:      3:      4:
- aaaa    ....    aaaa    aaaa    ....
-b    c  .    c  .    c  .    c  b    c
-b    c  .    c  .    c  .    c  b    c
- ....    ....    dddd    dddd    dddd
-e    f  .    f  e    .  .    f  .    f
-e    f  .    f  e    .  .    f  .    f
- gggg    ....    gggg    gggg    ....
-
-  5:      6:      7:      8:      9:
- aaaa    aaaa    aaaa    aaaa    aaaa
-b    .  b    .  .    c  b    c  b    c
-b    .  b    .  .    c  b    c  b    c
- dddd    dddd    ....    dddd    dddd
-.    f  e    f  .    f  e    f  .    f
-.    f  e    f  .    f  e    f  .    f
- gggg    gggg    ....    gggg    gggg
- */
-
 const enum DIGIT_NAMES {
   ZERO = "zero",
   ONE = "one",
@@ -33,17 +12,38 @@ const enum DIGIT_NAMES {
   NINE = "nine",
 }
 
+const sortDigit = (digit: Digit) => digit.sort((a, b) => a.localeCompare(b));
+
+const parseDigits = (digits: string) =>
+  digits.trim().split(" ").map((digit) => digit.split("") as Digit);
+
+const parseEntry = (entry: string) => {
+  const [patterns, output] = entry.split(" | ");
+  return [
+    parseDigits(patterns).sort((a, b) =>
+      isUniqueDigit(a) ? 1 : isUniqueDigit(b) ? -1 : 0
+    ),
+    parseDigits(output),
+  ] as Entry;
+};
+
+const createIsDigit = (count: number) =>
+  (digit: Digit) => digit.length === count;
+const isUniqueDigit = (digit: Digit) =>
+  [DIGIT_NAMES.ONE, DIGIT_NAMES.FOUR, DIGIT_NAMES.SEVEN, DIGIT_NAMES.EIGHT]
+    .some((digitName) => createIsDigit(SEGMENT_COUNTS[digitName])(digit));
+
 const SEGMENTS: Record<DIGIT_NAMES, Digit> = {
-  [DIGIT_NAMES.ZERO]: ["a", "c", "b", "e", "f", "g"],
-  [DIGIT_NAMES.ONE]: ["c", "f"],
-  [DIGIT_NAMES.TWO]: ["a", "c", "d", "e", "g"],
-  [DIGIT_NAMES.THREE]: ["a", "c", "d", "f", "g"],
-  [DIGIT_NAMES.FOUR]: ["c", "b", "d", "f"],
-  [DIGIT_NAMES.FIVE]: ["a", "b", "d", "f", "g"],
-  [DIGIT_NAMES.SIX]: ["a", "b", "d", "e", "f", "g"],
-  [DIGIT_NAMES.SEVEN]: ["a", "c", "f"],
-  [DIGIT_NAMES.EIGHT]: ["a", "b", "c", "d", "e", "f", "g"],
-  [DIGIT_NAMES.NINE]: ["a", "b", "c", "d", "f", "g"],
+  [DIGIT_NAMES.ZERO]: sortDigit(["a", "c", "b", "e", "f", "g"]),
+  [DIGIT_NAMES.ONE]: sortDigit(["c", "f"]),
+  [DIGIT_NAMES.TWO]: sortDigit(["a", "c", "d", "e", "g"]),
+  [DIGIT_NAMES.THREE]: sortDigit(["a", "c", "d", "f", "g"]),
+  [DIGIT_NAMES.FOUR]: sortDigit(["c", "b", "d", "f"]),
+  [DIGIT_NAMES.FIVE]: sortDigit(["a", "b", "d", "f", "g"]),
+  [DIGIT_NAMES.SIX]: sortDigit(["a", "b", "d", "e", "f", "g"]),
+  [DIGIT_NAMES.SEVEN]: sortDigit(["a", "c", "f"]),
+  [DIGIT_NAMES.EIGHT]: sortDigit(["a", "b", "c", "d", "e", "f", "g"]),
+  [DIGIT_NAMES.NINE]: sortDigit(["a", "b", "c", "d", "f", "g"]),
 };
 
 const SEGMENT_COUNTS: Record<DIGIT_NAMES, number> = {
@@ -78,20 +78,6 @@ type Entry = [Array<Digit>, Array<Digit>];
 type Entries = Array<Entry>;
 type SegmentWires = Record<Segment, Segment>;
 
-const parseDigits = (digits: string) =>
-  digits.trim().split(" ").map((digit) => digit.split("") as Digit);
-
-const parseEntry = (entry: string) => {
-  const [patterns, output] = entry.split(" | ");
-  return [parseDigits(patterns), parseDigits(output)] as Entry;
-};
-
-const createIsDigit = (count: number) =>
-  (digit: Digit) => digit.length === count;
-const isUniqueDigit = (digit: Digit) =>
-  [DIGIT_NAMES.ONE, DIGIT_NAMES.FOUR, DIGIT_NAMES.SEVEN, DIGIT_NAMES.EIGHT]
-    .some((digitName) => createIsDigit(SEGMENT_COUNTS[digitName])(digit));
-
 const getEntries = async () => {
   const inputString = await Deno.readTextFile("./day-8/input.txt");
   const entries = inputString.split("\n").map(parseEntry);
@@ -119,6 +105,7 @@ const createMapDigit = (correctDigit: Digit) => {
     );
 
     for (const correctSegment of correctSegmentsNotSet) {
+      if (Object.values(wires).includes(correctSegment)) continue;
       const newWires = mapEntry(entry, {
         ...wires,
         [segmentNotSet]: correctSegment,
@@ -170,16 +157,16 @@ const mapEntry = (entry: Entry, wires: SegmentWires): SegmentWires | null => {
 };
 
 export const part1 = async () => {
-  //   const entries = await getEntries();
+  const entries = await getEntries();
 
   let result = 0;
-  //   for (const entry of entries) {
-  //     const [, output] = entry;
-  //     result += output.reduce(
-  //       (sum, digit) => isUniqueDigit(digit) ? sum + 1 : sum,
-  //       0,
-  //     );
-  //   }
+  for (const entry of entries) {
+    const [, output] = entry;
+    result += output.reduce(
+      (sum, digit) => isUniqueDigit(digit) ? sum + 1 : sum,
+      0,
+    );
+  }
 
   return result;
 };
@@ -187,8 +174,7 @@ export const part1 = async () => {
 const decodeEntry = (entry: Entry) => {
   const wires = mapEntry(entry, {} as SegmentWires);
   if (!wires) {
-    console.log("FAIL");
-    return null;
+    throw new Error("FAILED");
   }
 
   const output = entry[1];
@@ -199,15 +185,17 @@ const decodeEntry = (entry: Entry) => {
     (
       digit,
     ) => {
-      const decodedDigit = segments.find(([, segments]) =>
-        digit.every((segment) => segments.includes(wires[segment]))
-      );
-      if (decodedDigit) {
-        return NAME_TO_VALUE[decodedDigit[0] as DIGIT_NAMES];
-      }
-      return "-1";
+      const sorted = sortDigit(digit.map((segment) => wires[segment])).join("");
+      const maped = segments.find(([, segment]) => segment.join("") === sorted)
+        ?.[0];
+      return {
+        digit: digit.join(""),
+        sorted,
+        maped,
+        value: maped ? NAME_TO_VALUE[maped as DIGIT_NAMES] : "-1",
+      };
     },
-  ).join("");
+  );
   return decoded;
 };
 
@@ -216,8 +204,8 @@ export const part2 = async () => {
   let sum = 0;
   for (const entry of entries) {
     const decoded = decodeEntry(entry);
-    console.log(decoded);
-    sum += Number(decoded);
+    const value = Number(decoded.reduce((num, { value }) => num + value, ""));
+    sum += value;
   }
 
   return sum;
