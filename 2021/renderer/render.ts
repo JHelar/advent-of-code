@@ -7,7 +7,7 @@ export * from "./colors.ts";
 
 let running = false;
 let terminal: TerminalCanvas;
-const buffer: [number, number, Color][] = [];
+const buffer: (() => void)[] = [];
 
 const terminalLoop = async (terminal: TerminalCanvas) => {
   const event = terminal.getEvent();
@@ -34,14 +34,23 @@ export const createRenderer = async (columns?: number, rows?: number) => {
   return terminal;
 };
 
+export const clearBuffer = () => {
+  buffer.splice(0);
+};
+
 export const drawPixel = (x: number, y: number, color: Color) => {
   terminal.drawPixel(x, y, color);
-  buffer.push([x, y, color]);
+  buffer.push(() => terminal.drawPixel(x, y, color));
+};
+
+export const drawChar = (x: number, y: number, char: string, color: Color) => {
+  terminal.terminal.setCell(x, y, char, color);
+  buffer.push(() => terminal.terminal.setCell(x, y, char, color));
 };
 
 export const renderToScreen = async () => {
   await terminal.render();
-  buffer.forEach((b) => terminal.drawPixel(...b));
+  buffer.forEach((b) => b());
 };
 
 export const sleep = (ms: number) =>
