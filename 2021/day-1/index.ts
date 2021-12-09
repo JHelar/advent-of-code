@@ -1,4 +1,6 @@
 // INPUT URL: https://adventofcode.com/2021/day/1/input
+import { createRenderer, drawPixel } from "../renderer/render.ts";
+
 const getDepths = async () => {
   const inputString = await Deno.readTextFile("./day-1/input.txt");
   const depths = inputString.split("\n").map(Number);
@@ -30,4 +32,8 @@ export const part2 = async () => {
   }
 
   return count;
+};
+
+export const render = async () => {
+  await createRenderer(20, 20);
 };
