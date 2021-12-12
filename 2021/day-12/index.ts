@@ -1,4 +1,5 @@
 import {
+  Color,
   Image,
   TerminalCanvas,
 } from "https://deno.land/x/terminal@0.1.0-dev.3/src/mod.ts";
@@ -139,11 +140,11 @@ export const part2 = async () => {
   return paths.length;
 };
 
-const getCaveImage = (type: TileType): Image =>
+const getCaveImage = (type: TileType, color?: Color): Image =>
   type === "small"
-    ? SMALL_CAVE
+    ? SMALL_CAVE(color)
     : type === "big"
-    ? BIG_CAVE
+    ? BIG_CAVE(color)
     : type === GOALS.START
     ? START_CAVE
     : END_CAVE;
@@ -196,8 +197,9 @@ const getCavePositions = (caveMap: CaveMap) => {
 
   while (q.length > 0) {
     let count = q.length;
-    y += 20;
-    let x = SPACING + (width / count) * SPACING;
+    const spacingSteps = Math.round((width * SPACING) / count + 1);
+    y += SPACING;
+    let x = SPACING + spacingSteps;
     while (count > 0) {
       const temp = q.pop();
       if (temp) {
@@ -208,7 +210,7 @@ const getCavePositions = (caveMap: CaveMap) => {
           y,
         ];
         visited.push(temp.tile);
-        x += caveImage.width + SPACING;
+        x += caveImage.width + spacingSteps;
         q.unshift(
           ...temp.connections.filter((tile) =>
             !visited.includes(tile) && !q.includes(caveMap[tile])
@@ -241,13 +243,23 @@ const drawTunnel = (
   const endX = cx + Math.floor(toWidth / 2);
   const endY = cy + Math.floor(toHeight / 2);
 
-  canvas.drawLine(
-    endX,
-    endY,
-    startX,
-    startY,
-    color,
-  );
+  if (startX - endX < 0) {
+    canvas.drawLine(
+      endX,
+      endY,
+      startX,
+      startY,
+      color,
+    );
+  } else {
+    canvas.drawLine(
+      startX,
+      startY,
+      endX,
+      endY,
+      color,
+    );
+  }
 };
 
 const drawTunnels = (
@@ -268,11 +280,20 @@ const drawTunnels = (
   }
 };
 
+const drawCave = (
+  tile: Tile,
+  position: Position,
+  canvas: TerminalCanvas,
+  color: Color = PALETTE.WHITE,
+) => {
+  const [startX, startY] = position;
+  const caveImage = getCaveImage(getTileType(tile), color);
+  canvas.drawImage(startX, startY, caveImage);
+};
+
 const drawCaves = (cavePositions: CavePositions, canvas: TerminalCanvas) => {
   for (const tile of Object.keys(cavePositions)) {
-    const [startX, startY] = cavePositions[tile];
-    const caveImage = getCaveImage(getTileType(tile));
-    canvas.drawImage(startX, startY, caveImage);
+    drawCave(tile, cavePositions[tile], canvas);
   }
 };
 
@@ -288,8 +309,9 @@ export const render = async () => {
   await canvas.render();
   await sleep(150);
 
-  for (const path of findPaths(caveMap[GOALS.START], caveMap, {}, 2)) {
+  for (const path of findPaths(caveMap[GOALS.START], caveMap, {})) {
     drawTunnels(caveMap, cavePositions, caveOrder, canvas);
+    drawCaves(cavePositions, canvas);
     for (let i = path.length - 1; i > 0; i--) {
       const fromTile = path[i - 1];
       const toTile = path[i];
@@ -298,10 +320,11 @@ export const render = async () => {
         caveMap[toTile],
         cavePositions,
         canvas,
-        PALETTE.GREEN_DARK,
+        PALETTE.GREEN_LIGHT,
       );
+      drawCave(toTile, cavePositions[toTile], canvas, PALETTE.RED);
+      drawCave(fromTile, cavePositions[fromTile], canvas, PALETTE.RED);
     }
-    drawCaves(cavePositions, canvas);
     await canvas.render();
     await sleep(150);
   }
