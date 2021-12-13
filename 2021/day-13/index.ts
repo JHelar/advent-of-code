@@ -113,7 +113,11 @@ const prepCanvas = async (canvas: TerminalCanvas) => {
   await canvas.render();
 };
 
-const printPaper = async (paper: Paper, canvas: TerminalCanvas) => {
+const drawPaper = async (
+  paper: Paper,
+  canvas: TerminalCanvas,
+  render = false,
+) => {
   if (paper.length > canvas.height) return;
   for (let y = 0; y < canvas.height; y++) {
     for (let x = 0; x < canvas.width; x++) {
@@ -128,9 +132,33 @@ const printPaper = async (paper: Paper, canvas: TerminalCanvas) => {
       }
     }
   }
+  if (render) {
+    await canvas.render();
+    await sleep(500);
+  }
+};
 
-  await canvas.render();
-  await sleep(500);
+const drawFold = async (
+  [foldX, foldY]: Instruction,
+  canvas: TerminalCanvas,
+  render = false,
+) => {
+  if (foldX > canvas.width || foldY > canvas.height) return;
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      if ((foldX && foldX === x) || (foldY && foldY === y)) {
+        canvas.drawPixel(
+          x,
+          y,
+          PALETTE.GREEN_DARK,
+        );
+      }
+    }
+  }
+  if (render) {
+    await canvas.render();
+    await sleep(500);
+  }
 };
 
 export const part1 = async () => {
@@ -145,13 +173,13 @@ export const part1 = async () => {
 
 export const part2 = async () => {
   const { paper, instructions } = await getPaper();
-  const canvas = await createRenderer();
-  await prepCanvas(canvas);
-
   for (const instruction of instructions) {
     fold(paper, instruction);
   }
-  await printPaper(paper, canvas);
+  const canvas = await createRenderer();
+  await prepCanvas(canvas);
+  await drawPaper(paper, canvas);
+  await canvas.render();
 
   console.log("");
   return "Press 'q' to quit";
@@ -161,10 +189,15 @@ export const render = async () => {
   const { paper, instructions } = await getPaper();
   const canvas = await createRenderer();
   await prepCanvas(canvas);
+  await drawPaper(paper, canvas, true);
   for (const instruction of instructions) {
+    await drawPaper(paper, canvas);
+    await drawFold(instruction, canvas, true);
+
     fold(paper, instruction);
-    await printPaper(paper, canvas);
   }
+  await drawPaper(paper, canvas);
+  await canvas.render();
 
   console.log("");
   return "Press 'q' to quit";
