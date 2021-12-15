@@ -1,4 +1,18 @@
 // INPUT URL: https://adventofcode.com/2021/day/15/input
+import {
+  Color,
+  TerminalCanvas,
+} from "https://deno.land/x/terminal@0.1.0-dev.3/src/mod.ts";
+import {
+  createRenderer,
+  drawPixel,
+  mult,
+  PALETTE,
+  renderToScreen,
+  setBackground,
+  sleep,
+} from "../renderer/render.ts";
+
 type Tile = {
   value: number;
   position: Position;
@@ -43,7 +57,7 @@ const parseMap = async () => {
   return map;
 };
 
-const findPath = (map: CaveMap) => {
+function* findPath(map: CaveMap, render = false) {
   const start = getTile([0, 0], map)!;
   const startNode: Node = {
     ...start,
@@ -62,7 +76,7 @@ const findPath = (map: CaveMap) => {
   while (open.length > 0) {
     const q = open.pop();
     if (!q) throw new Error("Shhoooot");
-    if (isEqual(q, end)) return q;
+    if (render) yield q;
     const neighbours = getNeighbourTiles(q.position, map);
 
     for (const neighbour of neighbours) {
@@ -75,7 +89,7 @@ const findPath = (map: CaveMap) => {
       };
       neighbourNode.f = neighbourNode.h + neighbourNode.g;
 
-      if (isEqual(neighbour, end)) return neighbourNode;
+      if (isEqual(neighbour, end)) yield neighbourNode;
 
       const nodesKey = getPositionKey(neighbour.position);
       const allreadySeenNodes = nodes[nodesKey] || [];
@@ -87,11 +101,11 @@ const findPath = (map: CaveMap) => {
     open.sort(({ f: a }, { f: b }) => b - a);
     closed.push(q);
   }
-};
+}
 
 export const part1 = async () => {
   const map = await parseMap();
-  const result = findPath(map);
+  const result = findPath(map).next().value;
   if (result) {
     return result.f;
   }
@@ -125,8 +139,89 @@ export const part2 = async () => {
     }
   }
 
-  const result = findPath(biggerMap);
+  const result = findPath(biggerMap).next().value;
   if (result) {
     return result.f;
   }
+};
+
+const drawPath = (path: Node) => {
+  let lookAt = path;
+
+  while (lookAt !== undefined) {
+    const [x, y] = lookAt.position;
+    if (lookAt.parent === undefined) {
+      drawPixel(x, y, PALETTE.YELLOW);
+      break;
+    } else if (lookAt === path) {
+      drawPixel(x, y, PALETTE.RED);
+    } else {
+      drawPixel(x, y, PALETTE.GREEN_LIGHT);
+    }
+    lookAt = lookAt.parent;
+  }
+};
+
+const renderResult = async (path: Node, canvas: TerminalCanvas) => {
+  let lookAt = path;
+
+  const coords: [Position, Color][] = [];
+  while (lookAt !== undefined) {
+    const [x, y] = lookAt.position;
+    if (lookAt.parent === undefined) {
+      coords.push([[x, y], PALETTE.YELLOW]);
+    } else if (lookAt === path) {
+      coords.push([[x, y], PALETTE.RED]);
+    } else {
+      coords.push([[x, y], PALETTE.GREEN_LIGHT]);
+    }
+    lookAt = lookAt.parent!;
+    coords.forEach(([pos, color]) => {
+      canvas.drawPixel(pos[0], pos[1], color);
+    });
+    await canvas.render();
+    await sleep(10);
+  }
+};
+
+export const render = async () => {
+  const map = await parseMap();
+  const maxHeight = map.length;
+  const maxWidth = map[0].length;
+
+  const biggerMap: CaveMap = Array(maxHeight * 5)
+    .fill(0)
+    .map(() => []);
+
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 5; x++) {
+      for (let mapY = 0; mapY < map.length; mapY++) {
+        const row: Tile[] = [];
+        for (let mapX = 0; mapX < map[mapY].length; mapX++) {
+          const { value } = map[mapY][mapX];
+          let newValue = value + x + y;
+          if (newValue > 9) newValue = newValue % 9;
+
+          row.push({
+            position: [mapX + x * maxWidth, mapY + y * maxHeight],
+            value: newValue,
+          });
+        }
+        biggerMap[mapY + y * maxHeight].push(...row);
+      }
+    }
+  }
+
+  const canvas = await createRenderer();
+  setBackground(PALETTE.BLUE_DARK);
+  await canvas.render();
+
+  let result: Node;
+  for (const node of findPath(map, true)) {
+    drawPath(node);
+    await renderToScreen();
+    await sleep(10);
+    result = node;
+  }
+  await renderResult(result!, canvas);
 };

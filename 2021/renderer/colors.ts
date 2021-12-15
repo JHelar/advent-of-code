@@ -1,4 +1,5 @@
 import {
+  Color,
   Colors,
   createColor,
 } from "https://deno.land/x/terminal@0.1.0-dev.3/src/mod.ts";
@@ -16,3 +17,6 @@ export const PALETTE = {
   TEXT: createColor(186, 186, 183),
   RED: createColor(232, 11, 33),
 };
+
+export const mult = ({ r, g, b }: Color, val: number) =>
+  createColor(r * val, g * val, b * val);
