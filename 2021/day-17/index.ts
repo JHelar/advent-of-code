@@ -1,4 +1,17 @@
 // INPUT URL: https://adventofcode.com/2021/day/17/input
+import {
+  Color,
+  TerminalCanvas,
+} from "https://deno.land/x/terminal@0.1.0-dev.3/src/mod.ts";
+import {
+  createRenderer,
+  drawPixel,
+  mult,
+  PALETTE,
+  renderToScreen,
+  setBackground,
+  sleep,
+} from "../renderer/render.ts";
 type Vector2 = [number, number];
 type Position = Vector2;
 type Velocity = Vector2;
@@ -10,7 +23,7 @@ type Target = {
 
 const isInTarget = (
   [x, y]: Vector2,
-  { xRange: [xStart, xEnd], yRange: [yStart, yEnd] }: Target
+  { xRange: [xStart, xEnd], yRange: [yStart, yEnd] }: Target,
 ) => x >= xStart && x <= xEnd && y <= yStart && y >= yEnd;
 const isOvershot = ([, y]: Vector2, { yRange: [, yEnd] }: Target) => y < yEnd;
 
@@ -39,7 +52,7 @@ const getMaxPosition = ([x, y]: Vector2): Vector2 => {
 const simulateThrow = (
   initialPosition: Vector2,
   target: Target,
-  initialVector: Vector2 = [0, 0]
+  initialVector: Vector2 = [0, 0],
 ): boolean => {
   // Simulate from highest point
   let projectile: Position = initialPosition;
@@ -105,4 +118,34 @@ export const part2 = async () => {
   }
 
   return hits;
+};
+
+export const render = async () => {
+  const target = await getTargetInput();
+  const { xRange, yRange } = target;
+  const canvas = await createRenderer();
+
+  const maxY = await part1();
+  const minY = yRange[1];
+
+  const maxX = xRange[1];
+  const minX = 0;
+
+  const height = Math.abs(maxY - minY);
+
+  const scale = (1 - ((height - canvas.height) / canvas.height));
+
+  const velocities: Velocity[] = [];
+  // for (let x = 1; x <= xRange[1]; x++) {
+  //   for (let y = yRange[1]; y <= Math.abs(10 * (yRange[1] - yRange[0])); y++) {
+  //     if (simulateThrow([0, 0], target, [x, y])) {
+  //       velocities.push([x, y]);
+  //     }
+  //   }
+  // }
+  console.log({
+    scale,
+    height,
+    canvas: canvas.height,
+  });
 };
