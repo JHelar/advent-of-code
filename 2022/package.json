@@ -1,0 +1,20 @@
+{
+  "name": "aoc-2022",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "day:new": "yarn esr gnome/create.ts",
+    "day:run": "yarn esr gnome/run.ts"
+  },
+  "dependencies": {
+    "chalk": "4",
+    "esbuild": "^0.15.15",
+    "esbuild-runner": "^2.2.2",
+    "handlebars": "^4.7.7",
+    "undici": "^5.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9"
+  }
+}
