@@ -2,6 +2,7 @@ import { logger, parseArgs } from "./utils";
 import path from "path";
 
 (async () => {
+  logger.headline("Run")
   const args = parseArgs()
   if (args.day === undefined || isNaN(args.day)) {
     logger.error(`Day "${args.day}", given is not a day!`);
@@ -20,7 +21,7 @@ import path from "path";
   }
 
   const dayDir = path.resolve(__dirname, '..', 'days', `day-${args.day}`)
-  logger.info(`Running day ${args.lang} part ${args.part}...`)
+  logger.info(`Running day ${args.day} part ${args.part}...`)
   const [result, perf] = await args.lang.runner({
     day: args.day,
     dayDir,
@@ -31,5 +32,6 @@ import path from "path";
     logger.result(line)
   })
 
-  logger.info(`Run took ${perf.duration.toFixed()}ms`)
+  logger.info(`${perf.duration.toFixed()}ms`)
+  logger.divider()
 })();

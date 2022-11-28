@@ -31,13 +31,14 @@ const createDayDirectory = async (day?: number): Promise<
 };
 
 (async () => {
+  logger.headline("Create");
   const args = parseArgs()
   if(!args.lang) {
     logger.error('Missing --lang option')
     process.exit(-1)
   }
 
-  logger.log(`Creating day with lang ${args.lang}...`)
+  logger.log(`Creating day...`)
   const [outDir, day] = await createDayDirectory(args.day);
   
   logger.log(`Fetching day ${day} input...`)
@@ -49,4 +50,5 @@ const createDayDirectory = async (day?: number): Promise<
     input,
   });
   logger.log(`Day ${day} generated! ${outDir}`)
+  logger.divider();
 })();

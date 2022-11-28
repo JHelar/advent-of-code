@@ -4,8 +4,9 @@ Advent of Code 2022
 # Setup
 
 ## Installation
-Install dependencies
+Install `Node.js`
 
+Install dependencies
 ```bash
 yarn
 ```
@@ -31,7 +32,7 @@ curl https://sh.rustup.rs -sSf | sh
 ```
 
 # Create a new day
-Create a new day directory, fetch day input and generate boilder plate.
+Create a new day directory, fetch day input and generate boiler plate to quicker get started with the problem solving.
 It will pick the next following day taken from the current status of the `days` directory. Meaning if you have `day-1` in your `days` directory it will create the `day-2` directory.
 
 * Set `LANGUAGE` to a language of your choice: `kt`- Kotlin, `ts`- Typescript, `rs`- Rust
@@ -47,10 +48,12 @@ Create a new day with Kotlin language
 yarn day:new --lang kt
 ```
 
+The script will the first time prompt you for your session cookie from [Advent of code](https://adventofcode.com/), you find it by loggin in, inspecting the page -> applications tab -> cookies tab, look for the value in `session`.
+
 # Run the code
 To run the code for a given day and part
 
-* Set `LANGUAGE` to the language that you want to run: `kt`- Kotlin, `ts`- Typescript
+* Set `LANGUAGE` to the language that you want to run: `kt`- Kotlin, `ts`- Typescript, `rs`- Rust
 * Set `DAY` to target the day to run
 * **Optional** Set `PART` to which part to run, defaults to part `1`
 

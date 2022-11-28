@@ -32,8 +32,8 @@ export const generate: Generate = async ({ day, input, outDir }) => {
 
     await fs.writeFile(path.resolve(outDir, template), result);
 
-    logger.log(
-      `Rust files generated, remember to run "code days/day-${day}" in order to get the rust-analyzer to work!`
-    );
   }
+  logger.log(
+    `Rust files generated, remember to run "code days/day-${day}" in order to get the rust-analyzer to work!`
+  );
 };
