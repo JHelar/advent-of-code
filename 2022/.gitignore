@@ -4,3 +4,5 @@ yarn-error.log
 
 days/**/META-INF
 days/**/*.class
+
+days/**/target

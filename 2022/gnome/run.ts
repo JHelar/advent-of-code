@@ -1,30 +1,30 @@
-import { getLanguage, logger } from "./utils";
+import { logger, parseArgs } from "./utils";
 import path from "path";
 
-const isPart = (value: number): value is 1 | 2 => value === 1 || value === 2;
-
 (async () => {
-  const [, , , dayStr, partStr] = process.argv;
-  const day = Number(dayStr);
-  if (isNaN(day)) {
-    logger.error(`Day "${day}", given is not a day!`);
+  const args = parseArgs()
+  if (args.day === undefined || isNaN(args.day)) {
+    logger.error(`Day "${args.day}", given is not a day!`);
     process.exit(-1);
   }
 
-  let part = partStr ? Number(partStr) : 1;
-  if (isNaN(part) || !isPart(part)) {
-    logger.error(`Part "${part}", given is not a part!`);
+  if (args.part !== undefined && isNaN(args.part)) {
+    logger.error(`Part "${args.part}", given is not a part!`);
     process.exit(-1);
   }
+  args.part = args.part ?? 1
 
-  const language = getLanguage();
+  if(!args.lang) {
+    logger.error('Missing --lang option')
+    process.exit(-1)
+  }
 
-  const dayDir = path.resolve(__dirname, '..', 'days', `day-${day}`)
-  logger.info(`Running day ${day} part ${part}...`)
-  const [result, perf] = await language.runner({
-    day,
+  const dayDir = path.resolve(__dirname, '..', 'days', `day-${args.day}`)
+  logger.info(`Running day ${args.lang} part ${args.part}...`)
+  const [result, perf] = await args.lang.runner({
+    day: args.day,
     dayDir,
-    part,
+    part: args.part,
   });
 
   result.forEach(line => {

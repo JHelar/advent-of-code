@@ -1,16 +1,20 @@
-import { fetchInput, getLanguage, logger } from "./utils";
+import { fetchInput, logger, parseArgs } from "./utils";
 import fs from "fs/promises";
 import path from "path";
 import { DayDirectoryName, getDayDirectories } from "./utils";
 
-
-const createNextDayDirectory = async (): Promise<
+const createDayDirectory = async (day?: number): Promise<
   [dir: string, day: number]
 > => {
   const dayDirectories = await getDayDirectories();
+  const existingDayDir = dayDirectories.find(([,dayDir]) => day === dayDir)
+  if(existingDayDir) {
+    return existingDayDir
+  }
+
   const previousDay = dayDirectories.at(-1);
-  let day = 1;
-  if (previousDay) {
+  day = day ?? 1;
+  if (previousDay && day === undefined) {
     day = previousDay[1] + 1;
   }
 
@@ -27,15 +31,19 @@ const createNextDayDirectory = async (): Promise<
 };
 
 (async () => {
-  const language = getLanguage()
+  const args = parseArgs()
+  if(!args.lang) {
+    logger.error('Missing --lang option')
+    process.exit(-1)
+  }
 
-  logger.log('Creating a whole new day... directory')
-  const [outDir, day] = await createNextDayDirectory();
+  logger.log(`Creating day with lang ${args.lang}...`)
+  const [outDir, day] = await createDayDirectory(args.day);
   
   logger.log(`Fetching day ${day} input...`)
   const input = await fetchInput(day);
   
-  await language.generate({
+  await args.lang.generate({
     outDir,
     day,
     input,
