@@ -1,13 +1,14 @@
 import fs from "fs/promises";
+import path from "path";
 
 const readInput = async () => {
-    const content = await fs.readFile(path.resolve(__dirname, "{{inputPath}}"))
+    const content = await fs.readFile(path.resolve(__dirname, "input.txt"))
     return content.toString('utf8')
 }
 
-const part1 = async () => {
-    return null
-}
+const parseElfs = () => readInput().then((input) => input.split('\n').map(Number).reduce(([first, ...rest], num) => isNaN(num) ? [0, first, ...rest] : [first + num, ...rest], [0] as number[]).sort((a, b) => b - a))
+
+const part1 = () => parseElfs().then(([first,]) => first)
 
 const part2 = async () => {
     return null

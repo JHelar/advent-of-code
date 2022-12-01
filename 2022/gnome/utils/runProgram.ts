@@ -9,9 +9,8 @@ export const runProgram = (
     performance.mark("start");
     const proc = exec(...params);
     
-    proc.stdout?.on("data", (message) => {
-      logger.result(message.replaceAll('\n', ''));
-    });
+    proc.stdout?.on("data", logger.result);
+    proc.stderr?.on('data', logger.error)
 
     proc.on("close", (code) => {
       performance.mark("end");

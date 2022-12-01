@@ -49,6 +49,6 @@ const createDayDirectory = async (day?: number): Promise<
     day,
     input,
   });
-  logger.log(`Day ${day} generated! ${outDir}`)
+  logger.log(`Day ${day} generated, open the day in code: "code days/day-${day}"`)
   logger.divider();
 })();

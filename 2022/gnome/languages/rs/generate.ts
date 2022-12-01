@@ -6,8 +6,8 @@ import { logger } from "../../utils";
 
 export const generate: Generate = async ({ day, input, outDir }) => {
   logger.log("Writing input file...");
-  const inputFilename = "input.txt";
-  await fs.writeFile(path.resolve(outDir, inputFilename), input);
+  const inputPath = "input.txt";
+  await fs.writeFile(path.resolve(outDir, inputPath), input);
 
   logger.log(`Generating Rust files...`);
   const templates = ["Cargo.toml", "main.rs"];
@@ -27,7 +27,7 @@ export const generate: Generate = async ({ day, input, outDir }) => {
 
     const result = generateTemplate({
       day,
-      inputFilename,
+      inputPath,
     });
 
     await fs.writeFile(path.resolve(outDir, template), result);

@@ -15,12 +15,12 @@ export const generate: Generate = async ({ day, input, outDir }) => {
   const generateTemplate = compile(templateStr);
 
   logger.log("Writing input file...");
-  const inputFilename = "input.txt";
-  await fs.writeFile(path.resolve(outDir, inputFilename), input);
+  const inputPath = "input.txt";
+  await fs.writeFile(path.resolve(outDir, inputPath), input);
 
   logger.log("Generating template...");
   const result = generateTemplate({
-    inputPath: inputFilename,
+    inputPath,
   });
 
   await fs.writeFile(path.resolve(outDir, "main.kt"), result);
