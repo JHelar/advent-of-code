@@ -1,0 +1,23 @@
+import java.io.File;
+
+fun readInput() = File("input.txt").inputStream().readBytes().toString(Charsets.UTF_8)
+
+fun part1(): String {
+    return "Result part 1"
+}
+
+fun part2(): String {
+    return "Result part 2"
+}
+
+fun main(args: Array<String>) {
+    val part = args.get(0);
+
+    if(part == "1") {
+        val result = part1();
+        println(result);
+    } else if(part == "2") {
+        val result = part2();
+        println(result);
+    }
+}
