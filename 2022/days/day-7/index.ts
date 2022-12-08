@@ -131,7 +131,7 @@ const setDirSize = (dir: Directory, directories: Directory[]) => {
   dir.size += dir.fileSizes;
 };
 
-const getLimitedSum = (dir: Directory, limit: number) => {
+const getLimitedSum = (dir: Directory, limit: number): number => {
   let sum = 0;
   if(dir.size <= limit) {
     sum += dir.size
