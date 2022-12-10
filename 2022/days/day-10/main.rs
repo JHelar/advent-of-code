@@ -4,7 +4,7 @@ use std::fs;
 #[derive(Debug, Clone, Copy)]
 enum Instruction {
     Noop,
-    Add(i32)
+    Add(i32),
 }
 
 impl Instruction {
@@ -26,25 +26,30 @@ struct CPU {
     cycles: i32,
     instructions: Vec<Instruction>,
     instruction_pointer: usize,
-    cycles_remaining: i32
+    cycles_remaining: i32,
 }
 
 impl CPU {
     fn new(instructions: Vec<Instruction>) -> CPU {
-        CPU { register: 1, cycles: 0, instruction_pointer: 0, cycles_remaining: 0, instructions }
+        CPU {
+            register: 1,
+            cycles: 0,
+            instruction_pointer: 0,
+            cycles_remaining: 0,
+            instructions,
+        }
     }
 
     fn cycle(self: &mut CPU) {
-        // println!("cycle: {} => {}, register: {}", self.cycles, self.cycles + 1, self.register);
         self.cycles += 1;
 
         if self.cycles_remaining == 0 {
             let instruction = self.instructions[self.instruction_pointer];
-            
+
             match instruction {
                 Instruction::Noop => {
                     self.cycles_remaining = 1;
-                },
+                }
                 Instruction::Add(_) => {
                     self.cycles_remaining = 2;
                 }
@@ -55,8 +60,7 @@ impl CPU {
         if self.cycles_remaining == 0 {
             let instruction = self.instructions[self.instruction_pointer];
             match instruction {
-                Instruction::Noop => {
-                },
+                Instruction::Noop => {}
                 Instruction::Add(amount) => {
                     self.register += amount;
                 }
@@ -65,9 +69,39 @@ impl CPU {
             self.instruction_pointer = (self.instruction_pointer + 1) % self.instructions.len();
         }
     }
+}
 
-    fn signal_strength(self: &CPU) -> i32 {
-        self.cycles * self.register
+struct CRT<'a> {
+    pointer: (usize, usize),
+    screen: [[&'a str; 40]; 6],
+}
+
+impl<'a> CRT<'a> {
+    fn new() -> CRT<'a> {
+        CRT {
+            pointer: (0, 0),
+            screen: [[" "; 40]; 6],
+        }
+    }
+
+    fn cycle(self: &mut CRT<'a>, cpu: &CPU) {
+        let pixel_value = if self.pointer.0 as i32 >= (cpu.register - 1)
+            && self.pointer.0 as i32 <= (cpu.register + 1)
+        {
+            "🎁"
+        } else {
+            "🎄"
+        };
+        self.screen[self.pointer.1][self.pointer.0] = pixel_value;
+
+        self.pointer.0 = (self.pointer.0 + 1) % 40;
+
+        let y_inc = if self.pointer.0 == 0 { 1 } else { 0 };
+        self.pointer.1 = (self.pointer.1 + y_inc) % 6;
+    }
+
+    fn print(self: &CRT<'a>) {
+        println!("\n{}", self.screen.map(|x| x.join("")).join("\n"));
     }
 }
 
@@ -77,7 +111,10 @@ fn parse_input() -> String {
 
 fn parse_instructions() -> Vec<Instruction> {
     let content = parse_input();
-    content.lines().map(|x| Instruction::from_str(x.trim())).collect()
+    content
+        .lines()
+        .map(|x| Instruction::from_str(x.trim()))
+        .collect()
 }
 
 fn part1() {
@@ -92,17 +129,25 @@ fn part1() {
             cpu.cycle();
             if stop - 1 == cpu.cycles {
                 let strength = cpu.register * stop;
-                sum += strength;            
+                sum += strength;
                 break;
             }
         }
     }
 
-    println!("{}", sum)
+    println!("Result: {}", sum)
 }
 
 fn part2() {
+    let instructions = parse_instructions();
+    let cpu = &mut CPU::new(instructions);
+    let crt = &mut CRT::new();
 
+    for _i in 0..240 {
+        crt.cycle(cpu);
+        cpu.cycle();
+    }
+    crt.print();
 }
 
 fn main() {
