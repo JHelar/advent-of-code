@@ -1,14 +1,14 @@
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 
 type Position = (i32, i32);
 
+#[derive(Debug)]
 enum NodeType {
     Start,
     End,
-    Tile(u32)
+    Tile(u32),
 }
 
 impl NodeType {
@@ -18,35 +18,26 @@ impl NodeType {
         } else if str == "E" {
             NodeType::End
         } else {
-            let elevation = str.chars().next().unwrap().to_digit(10).unwrap();
+            let elevation = str.chars().next().unwrap() as u32;
             NodeType::Tile(elevation)
         }
     }
 }
 
+#[derive(Debug)]
 struct Node {
+    elevation: u32,
     node_type: NodeType,
     position: Position,
-    f: i32,
-    g: i32,
-    h: i32,
-    parent: Option<Position>
+    visited: bool,
+    distance: i64,
+    parent: Option<Position>,
 }
 
 impl Node {
     fn is_neighbour(self: &Node, position: Position, map: &HeightMap) -> bool {
         if let Some(neighbour) = map.get(&position) {
-            return match neighbour.node_type {
-                NodeType::Tile(elevation) => {
-                    match self.node_type {
-                        NodeType::Tile(node_elevation) => {
-                            if node_elevation == elevation - 1 || node_elevation == elevation + 1 || node_elevation == elevation { true } else { false }
-                        },
-                        _ => true
-                    }
-                },
-                _ => true
-            }
+            return neighbour.elevation <= self.elevation || neighbour.elevation == self.elevation + 1;
         }
         false
     }
@@ -62,15 +53,41 @@ fn parse_map() -> HeightMap {
     let content = parse_input();
     let mut map: HeightMap = HashMap::new();
 
-    content.lines().enumerate().for_each(|(y, row)| row.split("").enumerate().for_each(|(x, elevation)| {
-        let position = (x as i32, y as i32);
-        map.insert(position, Node { node_type: NodeType::from_str(elevation), position, f: 0, g: 0, h: 0, parent: None });
-    } ));
+    content
+        .lines()
+        .map(|line| line.trim())
+        .enumerate()
+        .for_each(|(y, row)| {
+            row.trim()
+                .split("")
+                .filter(|x| !x.is_empty())
+                .enumerate()
+                .for_each(|(x, elevation)| {
+                    let position = (x as i32, y as i32);
+                    let node_type = NodeType::from_str(elevation);
+                    let distance = if matches!(node_type, NodeType::Start) {
+                        0
+                    } else {
+                        i32::MAX as i64
+                    };
+                    map.insert(
+                        position,
+                        Node {
+                            elevation: if elevation == "S" { 'a' as u32 } else if elevation == "E" { 'z' as u32 } else { elevation.chars().next().unwrap() as u32 },
+                            node_type,
+                            position,
+                            distance,
+                            visited: false,
+                            parent: None,
+                        },
+                    );
+                })
+        });
 
     map
 }
 
-fn get_neighbours(node_position: Position, map: &HeightMap) -> Vec<Position>{
+fn get_neighbours(node_position: Position, map: &HeightMap) -> Vec<Position> {
     let mut positions = Vec::new();
     let node = map.get(&node_position).unwrap();
 
@@ -98,53 +115,62 @@ fn get_neighbours(node_position: Position, map: &HeightMap) -> Vec<Position>{
 }
 
 fn find_path(map: &mut HeightMap) -> Option<Position> {
-    let start_position = map.values().find(|node| matches!(node.node_type, NodeType::Start)).unwrap().position;
-    let end_position = map.values().find(|node| matches!(node.node_type, NodeType::End)).unwrap().position;
+    let start_node_position = map
+        .values()
+        .find(|node| matches!(node.node_type, NodeType::Start))
+        .unwrap()
+        .position;
 
-    let mut open: Vec<(Position, i32)> = vec![(start_position, 0)];
-    let mut closed: Vec<Position> = Vec::new();
-    let mut visited: HashMap<Position, Vec<i32>> = Default::default();
+    let mut unvisited: Vec<Position> = vec![start_node_position];
 
-    while open.len() > 0 {
-        if let Some((node,_)) = open.pop() {
-            let neighbours = get_neighbours(node, map);
-            for neighbour in neighbours {
-                let neighbour_node = map.get_mut(&neighbour).unwrap();
-                neighbour_node.h = (neighbour_node.position.0 - end_position.0).abs() + (neighbour_node.position.1 - end_position.1).abs();
-                neighbour_node.f = neighbour_node.h + neighbour_node.g;
-                neighbour_node.parent = Some(node);
-
-                if matches!(neighbour_node.node_type, NodeType::End) {
-                    return Some(neighbour);
-                }
-
-                // Check if we have allready visited node from another position
-                if visited.contains_key(&neighbour) {
-                    let visited_fs = visited.get_mut(&neighbour).unwrap();
-                    if visited_fs.iter().find(|f| f <= &&neighbour_node.f).is_some() {
-                        continue;
-                    } else {
-                        visited_fs.push(neighbour_node.f);
-                    }
-                } else {
-                    visited.insert(neighbour, vec![neighbour_node.f]);
-                }
-                open.push((neighbour, neighbour_node.f));
-            }
-            open.sort_by(|(_,a), (_, b)| a.cmp(b));
-            closed.push(node);
+    while let Some(current_position) = unvisited.pop() {
+        let current_node = map.get(&current_position).unwrap();
+        println!("{:?}", current_position);
+        if matches!(current_node.node_type, NodeType::End) {
+            return Some(current_position);
         }
+
+        let current_distance = current_node.distance;
+        let neighbours = get_neighbours(current_position, map);
+
+        for neighbour_position in neighbours {
+            let neighbour_node = map.get_mut(&neighbour_position).unwrap();
+            let neighbour_distance = current_distance + 1;
+
+            if neighbour_node.distance >= neighbour_distance {
+                neighbour_node.distance = neighbour_distance;
+                neighbour_node.parent = Some(current_position);
+            }
+
+            if neighbour_node.visited == false {
+                unvisited.push(neighbour_position);
+            }
+        }
+        map.get_mut(&current_position).unwrap().visited = true;
+        unvisited.sort_by(|a, b| {
+            let a_node = map.get(a).unwrap();
+            let b_node = map.get(b).unwrap();
+
+            return b_node.distance.cmp(&a_node.distance);
+        })
     }
     None
 }
 
 fn part1() {
+    let map = &mut parse_map();
+    let mut parent = find_path(map);
+    let mut steps = -1;
+    while let Some(node_position) = parent {
+        steps += 1;
+        println!("{:?}", node_position);
+        parent = map.get(&node_position).unwrap().parent
+    }
 
+    println!("Steps: {}", steps);
 }
 
-fn part2() {
-
-}
+fn part2() {}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
