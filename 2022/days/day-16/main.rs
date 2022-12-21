@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -28,8 +27,8 @@ impl Valve {
             .chars()
             .rev()
             .collect::<String>();
-        let first_link = &first_link_string[0..2];
-        let mut links: Vec<String> = vec![first_link.to_string()];
+        let first_link = &first_link_string[0..2].chars().rev().collect::<String>();
+        let mut links: Vec<String> = vec![first_link.clone()];
 
         links_str_split.for_each(|link| {
             links.push(link.to_string());
@@ -37,13 +36,6 @@ impl Valve {
 
         Valve { links, rate, name }
     }
-}
-
-struct Node<'a> {
-    valve: &'a Valve,
-    f: i32,
-    g: i32,
-    h: i32,
 }
 
 fn parse_input() -> String {
@@ -59,105 +51,81 @@ fn parse_cave() -> Cave {
     valves
 }
 
-fn find_path(start_node: String, end_node: String, nodes: &mut HashMap<String, Node>) -> Option<Vec<String>> {
-    let mut came_from: HashMap<String, String> = Default::default();
-    let mut open: Vec<String> = vec![start_node.clone()];
-
-    nodes.values_mut().for_each(|node| {
-        node.f = 0;
-        node.g = if node.valve.name == start_node {
-            0
-        } else {
-            i32::MAX
-        };
-    });
-
-    while let Some(current_node_name) = open.pop() {
-        // Check end state
-        if current_node_name == end_node {
-            let mut path = vec![current_node_name.clone()];
-            let mut current_key = current_node_name.clone();
-
-            loop {
-                if let Some(next_key) = came_from.get(&current_key) {
-                    path.push(next_key.clone());
-                    if *next_key == start_node {
-                        break;
-                    }
-                    current_key = next_key.clone();
-                } else {
-                    break;
-                }
-            }
-            return Some(path);
+fn f(
+    player: String,
+    cave: &Cave,
+    time: i32,
+    other_players: i32,
+    opened_valves: &Vec<String>,
+    mem: &mut HashMap<String, i32>,
+) -> i32 {
+    if time == 0 {
+        if other_players > 0 {
+            return f(
+                "AA".to_string(),
+                cave,
+                26,
+                other_players - 1,
+                opened_valves,
+                mem,
+            );
         }
-
-        let neighbours = nodes.get(&current_node_name).unwrap().valve.links.iter();
-        for neighbour in neighbours {
-            let g_score = nodes.get(&current_node_name).unwrap().g + 1;
-            if g_score < nodes.get(neighbour).unwrap().g {
-
-                let neighbour_node = nodes.get_mut(neighbour).unwrap();
-                neighbour_node.g = g_score;
-                neighbour_node.f = g_score + neighbour_node.h;
-                came_from.insert(neighbour.clone(), current_node_name.clone());
-
-                if !open.contains(&neighbour) {
-                    open.push(neighbour.clone());
-                }
-            }
-        }
-        open.sort_by(|a, b| nodes.get(b).unwrap().f.cmp(&nodes.get(a).unwrap().f));
+        return 0;
     }
-    None
-}
 
-fn find_best_path(from_node: String, map: &Cave) {
-    let mut nodes: HashMap<String, Node> = HashMap::default();
-    let mut goal_valves: Vec<String> = Vec::new();
+    let key = format!(
+        "{}-{}-{}-{}", opened_valves.join(","), player, time, other_players
+    );
+    if mem.contains_key(&key) {
+        return *mem.get(&key).unwrap();
+    }
 
-    map.values().for_each(|valve| {
-        nodes.insert(
-            valve.name.clone(),
-            Node {
-                f: 0,
-                g: if valve.name == from_node { 0 } else { i32::MAX },
-                valve,
-                h: valve.rate,
-            },
+    let mut ans = 0;
+    let valve = cave.get(&player).unwrap();
+    if !opened_valves.contains(&player) && valve.rate > 0 {
+        let mut new_opened_valves = Vec::from_iter(opened_valves.iter().map(|v| v.clone()));
+        new_opened_valves.push(player.clone());
+        ans = ans.max(
+            (time - 1) * valve.rate
+                + f(
+                    player.clone(),
+                    cave,
+                    time - 1,
+                    other_players,
+                    &new_opened_valves,
+                    mem,
+                ),
         );
-
-        if valve.rate > 0 {
-            goal_valves.push(valve.name.clone());
-        }
-    });
-
-    let goal_valve_combinations = goal_valves.iter().permutations(goal_valves.len()).unique();
-    let mut start_valve = from_node.clone();
-
-    for goal_valve_combination in goal_valve_combinations {
-        let mut total_path: Vec<String> = vec![];
-        for goal_valve in goal_valve_combination {
-            if let Some(path) = find_path(start_valve.clone(), goal_valve.clone(), &mut nodes) {
-                path.iter().for_each(|valve| total_path.push(valve.clone()));
-                start_valve = goal_valve.clone();
-            } else {
-                println!("No path found between: {} => {}", start_valve, goal_valve);
-                break;
-            }
-        }
-        println!("Path: {:?}", total_path);
     }
+    for link in valve.links.iter() {
+        ans = ans.max(f(
+            link.clone(),
+            cave,
+            time - 1,
+            other_players,
+            opened_valves,
+            mem,
+        ));
+    }
+    mem.insert(key, ans);
+    ans
 }
 
 fn part1() {
     let cave = parse_cave();
-    let start_node = "AA".to_string();
-    find_best_path(start_node, &cave)
-    // println!("{:?}", result);
+    let mut mem: HashMap<String, i32> = Default::default();
+    let opened_valves: Vec<String> = Vec::new();
+    let ans = f("AA".to_string(), &cave, 30, 0, &opened_valves, &mut mem);
+    println!("Result: {:?}", ans);
 }
 
-fn part2() {}
+fn part2() {
+    let cave = parse_cave();
+    let mut mem: HashMap<String, i32> = Default::default();
+    let opened_valves: Vec<String> = Vec::new();
+    let ans = f("AA".to_string(), &cave, 26, 1, &opened_valves, &mut mem);
+    println!("Result: {:?}", ans);
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
