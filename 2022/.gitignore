@@ -1,8 +1,5 @@
-node_modules
-yarn-error.log
-.token
-
-days/**/META-INF
-days/**/*.class
-
+.yarn
 days/**/target
+node_modules
+.token
+.yarnrc.yml
