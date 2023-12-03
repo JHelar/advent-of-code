@@ -156,7 +156,7 @@ async function generateDay(dayString) {
   fs.writeFileSync(path.resolve(dayFolderPath, "main.rs"), moduleFile);
   fs.writeFileSync(path.resolve(dayFolderPath, "Cargo.toml"), cargoTomlFile);
   fs.writeFileSync(path.resolve(dayFolderPath, "input.txt"), input);
-  fs.writeFileSync(path.resolve(dayFolderPath, "test.txt"), input);
+  fs.writeFileSync(path.resolve(dayFolderPath, "test.txt"), "");
 
   console.log(`Finished creating day ${day}!`);
   console.log(`code ./${path.relative(process.cwd(), dayFolderPath)}`);
