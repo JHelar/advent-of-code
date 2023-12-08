@@ -1,4 +1,4 @@
-use std::{fmt::Display, collections::HashMap};
+use std::{collections::{HashMap, HashSet}, fmt::Display};
 
 type Position = (i32, i32);
 
@@ -55,14 +55,13 @@ fn print_map(map: &Vec<Vec<Tile>>, positions: &Vec<Position>) {
 
 fn part1() -> Option<u32> {
     let positions = read_input();
-    let min_x = *positions.iter().map(|(x, _)| x).min().unwrap();
-    let min_y = *positions.iter().map(|(_, y)| y).min().unwrap();
     let max_x = *positions.iter().map(|(x, _)| x).max().unwrap();
     let max_y = *positions.iter().map(|(_, y)| y).max().unwrap();
-
+    
     let mut map: Vec<Vec<Tile>> = (0..=max_y)
         .map(|_| (0..=max_x).map(|_| Tile::Empty).collect())
         .collect();
+
     for position in positions.iter() {
         for y in 0..=max_y {
             for x in 0..=max_x {
@@ -103,28 +102,65 @@ fn part1() -> Option<u32> {
         }
     }
 
-    let mut finite_positions: HashMap<Position, u32> = positions
-        .iter()
-        .filter(|(x, y)| !(x == &min_x || x == &max_x || y == &min_y || y == &max_y))
-        .map(|pos| (*pos, 0))
-        .collect();
+    let mut finite_positions = positions.iter().map(|pos| (pos, 0_u32)).collect::<HashMap<_,_>>();
 
-    map.iter().for_each(|row| row.iter().for_each(|tile| {
-      match tile {
-          Tile::Single { dist:_, pos } => {
-            if let Some(count) = finite_positions.get_mut(pos) {
-              *count += 1;
+    map.iter().enumerate().for_each(|(y, row)| {
+        row.iter().enumerate().for_each(|(x, tile)| {
+            if y == 0 || (y as i32) == max_y || x == 0 || (x as i32) == max_x {
+                match tile {
+                    Tile::Single { dist: _, pos } => {
+                        finite_positions.remove(pos);
+                    },
+                    _ => {}
+                }
+            } else {
+                match tile {
+                    Tile::Single { dist: _, pos } => {
+                        if let Some(count) = finite_positions.get_mut(pos) {
+                            *count += 1;
+                        }
+                    },
+                    _ => {}
+                }
             }
-          },
-          _ => {}
-      }
-    }));
+        })
+    });
 
     finite_positions.iter().map(|(_, count)| *count).max()
 }
 
 fn part2() -> Option<u32> {
-    None
+    let positions = read_input();
+    let max_x = *positions.iter().map(|(x, _)| x).max().unwrap();
+    let max_y = *positions.iter().map(|(_, y)| y).max().unwrap();
+    let max_distance = 10_000;
+    let mut area_count = 0_u32;
+    
+    let mut map: Vec<Vec<Tile>> = (0..=max_y)
+        .map(|_| (0..=max_x).map(|_| Tile::Empty).collect())
+        .collect();
+    
+        for y in 0..=max_y {
+            for x in 0..=max_x {
+                let distance = positions.iter().map(|position| distance((x as i32, y as i32), *position)).sum();
+                let tile = &mut map[y as usize][x as usize];
+
+                if distance < max_distance {
+                    match tile {
+                        Tile::Empty => {
+                            area_count += 1;
+                            map[y as usize][x as usize] = Tile::Single {
+                                dist: distance,
+                                pos: (0, 0),
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+    Some(area_count)
 }
 
 fn main() {
