@@ -95,7 +95,7 @@ impl Ord for HandType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Eq)]
 struct Hand {
     cards: Vec<usize>,
     hand_type: HandType,
@@ -120,6 +120,18 @@ impl Hand {
             hand_type,
             bet,
         }
+    }
+}
+
+impl PartialEq for Hand {
+    fn eq(&self, other: &Self) -> bool {
+        self.cards == other.cards && self.hand_type == other.hand_type && self.bet == other.bet
+    }
+}
+
+impl PartialOrd for Hand {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -159,8 +171,8 @@ fn part1() -> Option<u32> {
         .iter()
         .map(|line| Hand::from_str(line.clone(), false))
         .collect();
-      
-    hands.sort_by(|a, b| a.cmp(b));
+
+    hands.sort();
 
     let result = hands
         .iter()
@@ -177,7 +189,7 @@ fn part2() -> Option<u32> {
         .map(|line| Hand::from_str(line.clone(), true))
         .collect();
 
-    hands.sort_by(|a, b| a.cmp(b));
+    hands.sort();
 
     let result = hands
         .iter()
