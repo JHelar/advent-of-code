@@ -49,8 +49,8 @@ path = "main.rs"
 const MODULE_FILE = `fn read_input() -> Vec<String> {
   std::io::stdin()
       .lines()
-      .filter(|line| line.is_ok())
-      .map(|line| line.unwrap().trim().to_string())
+      .filter_map(|line| line.ok())
+      .map(|line| line.trim().to_string())
       .collect()
 }
 
