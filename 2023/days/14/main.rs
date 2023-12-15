@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Display,
 };
 
@@ -45,16 +45,6 @@ fn read_input() -> Vec<Vec<Tile>> {
         .filter_map(|line| line.ok())
         .map(|line| line.trim().chars().map(Tile::from_char).collect())
         .collect()
-}
-
-fn print_map(map: &Vec<Vec<Tile>>) {
-    for row in map.iter() {
-        for tile in row.iter() {
-            print!("{tile}");
-        }
-        print!("\n");
-    }
-    print!("\n");
 }
 
 fn drop_rocks_north(map: &mut Vec<Vec<Tile>>) {
@@ -208,37 +198,31 @@ fn count_rocks(map: &Vec<Vec<Tile>>) -> u32 {
 fn part1() -> Option<u32> {
     let mut map = read_input();
     drop_rocks(&mut map, FallDirection::North);
-    let result = count_rocks(&map);
 
-    print_map(&map);
+    let result = count_rocks(&map);
     Some(result)
 }
 
 fn part2() -> Option<u32> {
     let mut map = read_input();
     let mut mem: HashMap<String, usize> = HashMap::default();
-    mem.insert(get_map_state(&map), 0);
-
-    let mut cycle_start = 0;
-    let mut cycle_size = 0;
-    for cycle_count in 1..18 {
+    let max_cycles = 1000000000;
+    
+    for cycle_count in 1..=max_cycles {
         cycle(&mut map);
         let state = get_map_state(&map);
         if let Some(prev_cycle_count) = mem.get(&state) {
-          cycle_size = cycle_count - prev_cycle_count;
-          cycle_start = cycle_count;
-          break;
+            let cycle_size = cycle_count - prev_cycle_count;
+            if (max_cycles - prev_cycle_count) % cycle_size == 0 {
+                break;
+            }
         } else {
-          mem.insert(state, cycle_count);
+            mem.insert(state, cycle_count);
         }
     }
 
-    for cycle_count in (cycle_start..1000000000).step_by(cycle_size) {
-      cycle(&mut map);
-    }
-
-    print_map(&map);
-    Some(0)
+    let result = count_rocks(&map);
+    Some(result)
 }
 
 fn main() {
