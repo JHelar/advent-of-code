@@ -1,0 +1,369 @@
+#!/usr/bin/env -S node --experimental-detect-module
+import { spawnSync } from "node:child_process";
+import fs from "fs";
+import path from "path";
+import readline from "readline";
+import { promisify, parseArgs } from "util";
+
+const LOG_PREFIX = {
+  log: "🎅",
+  error: "💥",
+  info: "🎄",
+};
+
+global.console = new Proxy(global.console, {
+  get(target, method) {
+    return new Proxy(target[method], {
+      apply(target, thisArg, ...[message, ...rest]) {
+        return Reflect.apply(target, thisArg, [
+          `${LOG_PREFIX[method]} ${message}`,
+          ...rest,
+        ]);
+      },
+    });
+  },
+});
+
+const MODE = {
+  GENERATE: "generate",
+  RUN: "run",
+};
+
+const LANGUAGE = {
+  rust: {
+    [MODE.GENERATE]: generateRustFiles,
+    [MODE.RUN]: runRust,
+  },
+  go: {
+    [MODE.GENERATE]: generateGoFiles,
+    [MODE.RUN]: runGo,
+  },
+};
+
+const ANSI_COLORS = {
+  Foreground: {
+    Black: 30,
+    Red: 31,
+    Green: 32,
+    Yellow: 33,
+    Blue: 34,
+    Magenta: 35,
+    Cyan: 36,
+    White: 37,
+    Default: 39,
+    Reset: 0,
+  },
+  Background: {
+    Black: 40,
+    Red: 41,
+    Green: 42,
+    Yellow: 43,
+    Blue: 44,
+    Magenta: 45,
+    Cyan: 46,
+    White: 47,
+    Default: 49,
+    Reset: 0,
+  },
+};
+
+const Color = {
+  Foreground: Object.fromEntries(
+    Object.entries(ANSI_COLORS.Foreground).map(([name, colorCode]) => [
+      name,
+      createGetColorString(colorCode),
+    ])
+  ),
+  Background: Object.fromEntries(
+    Object.entries(ANSI_COLORS.Background).map(([name, colorCode]) => [
+      name,
+      createGetColorString(colorCode),
+    ])
+  ),
+};
+
+const prompt = (() => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+  });
+  return promisify(rl.question).bind(rl);
+})();
+
+const {
+  values: { year: YEAR, mode, language: LANG },
+  positionals: [day, ...REST_ARGS],
+} = parseArgs({
+  options: {
+    year: {
+      type: "string",
+      default: new Date().getFullYear().toString(),
+      short: "y",
+    },
+    mode: {
+      type: "string",
+      default: MODE.GENERATE,
+      short: "m",
+    },
+    language: {
+      type: "string",
+      default: Object.keys(LANGUAGE)[0],
+      short: "l",
+    },
+  },
+  allowPositionals: true,
+});
+
+const AOC_URL = `https://adventofcode.com/${YEAR}`;
+
+const TOKEN = await (async () => {
+  let settingsPath = path.resolve(".token");
+  if (fs.existsSync(settingsPath)) {
+    return fs.readFileSync(settingsPath).toString("utf8");
+  }
+
+  const token = await prompt("🎁 Please provide your AoC session token: ");
+  fs.writeFileSync(".token", token);
+
+  return token;
+})();
+
+function createGetColorString(colorCode) {
+  return function (strings) {
+    strings = Array.isArray(strings) ? strings : [strings];
+    return `\x1b[1;${colorCode}m${strings.join("")}\x1b[0;0m`;
+  };
+}
+
+function writeFile({ dayFolderPath, fileName, data, templateData = {} }) {
+  console.info(`Writing ${Color.Foreground.Green(fileName)}`);
+  for (const [templateKey, templateValue] of Object.entries(templateData)) {
+    data = data.replaceAll(`{${templateKey}}`, templateValue);
+  }
+  fs.writeFileSync(path.resolve(dayFolderPath, fileName), data);
+}
+
+function generateRustFiles({ day, title, dayFolderPath }) {
+  const CARGO_TOML_FILE = `[package]
+name = "aoc-${YEAR}-{day}"
+version = "1.84.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[[bin]]
+name = "aoc-${YEAR}-{day}"
+path = "main.rs"
+`;
+
+  const MODULE_FILE = `fn read_input() -> Vec<String> {
+  std::io::stdin()
+      .lines()
+      .filter_map(|line| line.ok())
+      .map(|line| line.trim().to_string())
+      .collect()
+}
+
+fn part1() -> Option<u32> {
+  None
+}
+
+fn part2() -> Option<u32> {
+  None
+}
+
+fn main() {
+  println!("{title}");
+  if let Some(part) = std::env::args().skip(1).next() {
+      if let Some(result) = match part.as_str() {
+          "1" => part1(),
+          "2" => part2(),
+          _ => panic!("💥 Invalid part number: {part}"),
+      } {
+          println!("🎁 Result part {part}: {result}");
+      }
+  } else {
+      if let Some(result_1) = part1() {
+          println!("🎁 Result part 1: {result_1}");
+      }
+      if let Some(result_2) = part2() {
+          println!("🎁 Result part 2: {result_2}");
+      }
+  }
+}
+`;
+
+  writeFile({
+    dayFolderPath,
+    fileName: "main.rs",
+    data: MODULE_FILE,
+    templateData: { day, title },
+  });
+
+  writeFile({
+    dayFolderPath,
+    fileName: "Cargo.toml",
+    data: CARGO_TOML_FILE,
+    templateData: { day },
+  });
+}
+
+function generateGoFiles({ title, dayFolderPath }) {
+  const GO_MAIN_FILE = `package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+)
+
+func readInput(yield func(string) bool) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		line, err := reader.ReadString('\\n')
+		if err != nil {
+			return
+		}
+		if !yield(strings.Trim(string(line), "\\n ")) {
+			return
+		}
+	}
+}
+
+func part1() uint64 {
+	return 0
+}
+
+func part2() uint64 {
+	return 0
+}
+
+func main() {
+	fmt.Println("{title}")
+	part := os.Args[1]
+	var result uint64
+	if part == "1" {
+		result = part1()
+	} else if part == "2" {
+		result = part2()
+	} else {
+		panic(fmt.Sprintf("💥 Invalid part number: %s", part))
+	}
+	fmt.Printf("🎁 Result part %s: %d", part, result)
+}
+`;
+  writeFile({
+    dayFolderPath,
+    fileName: "main.go",
+    data: GO_MAIN_FILE,
+    templateData: { title },
+  });
+}
+
+function runRust({ dayFolderPath }) {
+  spawnSync("cargo", ["run", ...REST_ARGS], {
+    stdio: "inherit",
+    cwd: dayFolderPath,
+  });
+}
+
+function runGo({ dayFolderPath }) {
+  spawnSync("go", ["run", "main.go", ...REST_ARGS], {
+    stdio: "inherit",
+    cwd: dayFolderPath,
+  });
+}
+
+async function generateDay({ dayString, generateLanguage }) {
+  const day = Number(dayString);
+  if (isNaN(day) || day < 0 || day > 25) {
+    throw new Error(`Day ${dayString} is not a valid day`);
+  }
+
+  const dayUrl = `${AOC_URL}/day/${day}`;
+
+  const dayResult = await fetch(dayUrl, {
+    headers: {
+      Cookie: `session=${TOKEN}`,
+      Accept: "text/html",
+    },
+  });
+  if (!dayResult.ok) {
+    throw new Error(
+      `Unable to retrive day information [${dayResult.status}] "${dayResult.statusText}"`
+    );
+  }
+
+  const dayHtml = await dayResult.text();
+  const [, title] = dayHtml.match(/\<h2\>(.*?)\<\/h2\>/) ?? [];
+  if (!title) {
+    throw new Error(`Unable to extract day title`);
+  }
+  console.log(title);
+
+  const dayFolderPath = path.resolve(YEAR, "days", dayString);
+  if (fs.existsSync(dayFolderPath)) {
+    throw new Error(`Day ${day} already exists!`);
+  }
+
+  console.info(`Downloading day input`);
+  const inputUrl = `${dayUrl}/input`;
+  const inputResult = await fetch(inputUrl, {
+    headers: {
+      Cookie: `session=${TOKEN}`,
+      Accept: "text/html",
+    },
+  });
+
+  if (!inputResult.ok) {
+    throw new Error(
+      `Unable to download input [${inputResult.status}] "${inputResult.statusText}"`
+    );
+  }
+  const input = await inputResult.text();
+
+  console.info(`Generating day folder`);
+  fs.mkdirSync(dayFolderPath, { recursive: true });
+
+  console.log("Generating language files");
+  generateLanguage({
+    day,
+    dayFolderPath,
+    title,
+  });
+
+  console.log("Generating input files");
+  writeFile({ dayFolderPath, fileName: "input.txt", data: input });
+  writeFile({ dayFolderPath, fileName: "test.txt", data: "" });
+
+  console.log(`Finished creating day ${Color.Foreground.Magenta(day)} ${Color.Foreground.Cyan(YEAR)}!`);
+  console.log(`code ./${path.relative(process.cwd(), dayFolderPath)}`);
+}
+
+async function runDay({ dayString, run }) {
+  const dayFolderPath = path.resolve(YEAR, "days", dayString);
+  run({ dayFolderPath });
+}
+
+console.log(`--- AoC ${Color.Foreground.Cyan(YEAR)} ---`);
+try {
+  const dayString = day.padStart(2, '0')
+  if (mode === MODE.GENERATE) {
+    await generateDay({
+      dayString,
+      generateLanguage: LANGUAGE[LANG][MODE.GENERATE],
+    });
+  }
+  if (mode === MODE.RUN) {
+    await runDay({ dayString, run: LANGUAGE[LANG][MODE.RUN] });
+  }
+
+  process.exit(0);
+} catch (error) {
+  console.error(error.message);
+  process.exit(-1);
+}
