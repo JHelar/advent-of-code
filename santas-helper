@@ -341,7 +341,7 @@ async function generateDay({ dayString, generateLanguage }) {
   writeFile({ dayFolderPath, fileName: "test.txt", data: "" });
 
   console.log(`Finished creating day ${Color.Foreground.Magenta(day)} ${Color.Foreground.Cyan(YEAR)}!`);
-  console.log(`code ./${path.relative(process.cwd(), dayFolderPath)}`);
+  console.log(`code -r ./${path.relative(process.cwd(), dayFolderPath)}`);
 }
 
 async function runDay({ dayString, run }) {
