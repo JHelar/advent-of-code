@@ -71,48 +71,7 @@ fn read_input() -> Vec<Instruction> {
         .collect()
 }
 
-fn part1() -> Option<String> {
-    let instructions = read_input();
-    let unique_steps: HashSet<char> = instructions
-        .iter()
-        .flat_map(|instruction| vec![instruction.0, instruction.1])
-        .collect();
-
-    let steps: HashMap<char, Step> = unique_steps
-        .iter()
-        .map(|char| (*char, Step::from_instructions(*char, &instructions)))
-        .collect();
-
-    let mut visit = steps
-        .iter()
-        .filter_map(|(_, step)| {
-            if step.parents.len() == 0 {
-                Some(step.name)
-            } else {
-                None
-            }
-        })
-        .collect::<BTreeSet<char>>();
-
-    let mut visited = Vec::default();
-
-    while let Some(step_name) = visit.pop_first() {
-        visited.push(step_name);
-        if let Some(step) = steps.get(&step_name) {
-            step.children.iter().for_each(|child_name| {
-                if !visit.contains(child_name) && steps.get(child_name).unwrap().can_visit(&visited)
-                {
-                    visit.insert(*child_name);
-                }
-            });
-        }
-    }
-
-    Some(visited.iter().collect::<String>())
-}
-
-fn part2() -> Option<String> {
-    let instructions = read_input();
+fn process_instructions(instructions: &Vec<Instruction>, max_workers: usize, step_duration: u32) -> (String, u32) {
     let unique_steps: HashSet<char> = instructions
         .iter()
         .flat_map(|instruction| vec![instruction.0, instruction.1])
@@ -135,14 +94,12 @@ fn part2() -> Option<String> {
         .collect::<BTreeSet<char>>();
 
     let mut completed = Vec::default();
-    const MAX_WORKERS: usize = 5;
-    let mut workers: [Option<(&Step, u32, u32)>; MAX_WORKERS] = [None, None, None, None, None];
-    let step_duration = 60;
+    let mut workers: Vec<Option<(&Step, u32, u32)>> = vec![None;max_workers];
     let mut elapsed_time = 0;
 
     while completed.len() != steps.len() {
         // If we have workers available and we have things to visit
-        for worker_index in 0..MAX_WORKERS {
+        for worker_index in 0..max_workers {
             if workers[worker_index].is_some() {
                 continue;
             } else if let Some(step_name) = visit.pop_first() {
@@ -151,7 +108,7 @@ fn part2() -> Option<String> {
             }
         }
         // Process workers
-        for worker_index in 0..MAX_WORKERS {
+        for worker_index in 0..max_workers {
             if let Some(worker) = workers.get_mut(worker_index).unwrap() {
                 worker.1 += 1;
                 if worker.1 == worker.2 {
@@ -170,8 +127,19 @@ fn part2() -> Option<String> {
         elapsed_time += 1
     }
 
-    println!("{}", completed.iter().collect::<String>());
-    Some(format!("{elapsed_time}"))
+    (completed.iter().collect(), elapsed_time)
+}
+
+fn part1() -> Option<String> {
+    let instructions = read_input();
+    let (steps, _) = process_instructions(&instructions, 1, 0);
+    Some(steps)
+}
+
+fn part2() -> Option<String> {
+    let instructions = read_input();
+    let (_, time) = process_instructions(&instructions, 5, 60);
+    Some(format!("{time}"))
 }
 
 fn main() {
