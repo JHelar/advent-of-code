@@ -27,6 +27,7 @@ global.console = new Proxy(global.console, {
 const MODE = {
   GENERATE: "generate",
   RUN: "run",
+  INPUT: "input"
 };
 
 const LANGUAGE = {
@@ -167,11 +168,11 @@ path = "main.rs"
       .collect()
 }
 
-fn part1() -> Option<u32> {
+fn part1() -> Option<isize> {
   None
 }
 
-fn part2() -> Option<u32> {
+fn part2() -> Option<isize> {
   None
 }
 
@@ -288,7 +289,6 @@ async function generateDay({ dayString, generateLanguage }) {
 
   const dayResult = await fetch(dayUrl, {
     headers: {
-      Cookie: `session=${TOKEN}`,
       Accept: "text/html",
     },
   });
@@ -310,6 +310,30 @@ async function generateDay({ dayString, generateLanguage }) {
     throw new Error(`Day ${day} already exists!`);
   }
 
+  console.info(`Generating day folder`);
+  fs.mkdirSync(dayFolderPath, { recursive: true });
+
+  console.log("Generating language files");
+  generateLanguage({
+    day,
+    dayFolderPath,
+    title,
+  });
+
+  writeFile({ dayFolderPath, fileName: "test.txt", data: "" });
+
+  console.log(`Finished creating day ${Color.Foreground.Magenta(day)} ${Color.Foreground.Cyan(YEAR)}!`);
+  console.log(`code -r ./${path.relative(process.cwd(), dayFolderPath)}`);
+}
+
+async function generateInput({ dayString }) {
+  const day = Number(dayString);
+  if (isNaN(day) || day < 0 || day > 25) {
+    throw new Error(`Day ${dayString} is not a valid day`);
+  }
+
+  const dayUrl = `${AOC_URL}/day/${day}`;
+
   console.info(`Downloading day input`);
   const inputUrl = `${dayUrl}/input`;
   const inputResult = await fetch(inputUrl, {
@@ -325,23 +349,9 @@ async function generateDay({ dayString, generateLanguage }) {
     );
   }
   const input = await inputResult.text();
-
-  console.info(`Generating day folder`);
-  fs.mkdirSync(dayFolderPath, { recursive: true });
-
-  console.log("Generating language files");
-  generateLanguage({
-    day,
-    dayFolderPath,
-    title,
-  });
-
-  console.log("Generating input files");
+  const dayFolderPath = path.resolve(YEAR, "days", dayString);
   writeFile({ dayFolderPath, fileName: "input.txt", data: input });
-  writeFile({ dayFolderPath, fileName: "test.txt", data: "" });
-
-  console.log(`Finished creating day ${Color.Foreground.Magenta(day)} ${Color.Foreground.Cyan(YEAR)}!`);
-  console.log(`code -r ./${path.relative(process.cwd(), dayFolderPath)}`);
+  console.log(`Finished generating input for day ${Color.Foreground.Magenta(day)} ${Color.Foreground.Cyan(YEAR)}!`);
 }
 
 async function runDay({ dayString, run }) {
@@ -360,6 +370,9 @@ try {
   }
   if (mode === MODE.RUN) {
     await runDay({ dayString, run: LANGUAGE[LANG][MODE.RUN] });
+  }
+  if (mode === MODE.INPUT) {
+    await generateInput({ dayString });
   }
 
   process.exit(0);
