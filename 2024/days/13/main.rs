@@ -1,6 +1,8 @@
 use std::collections::HashMap;
-
 use vector2::Vector2;
+
+use z3::ast::{Ast, Int};
+use z3::{Config, Context, Solver};
 
 mod vector2;
 
@@ -100,21 +102,56 @@ fn find_path(machine: &ClawMachine) -> Option<(isize, isize)> {
 }
 
 fn calc_path(machine: &ClawMachine, offset: isize) -> Option<(isize, isize)> {
-    // Apply Cramer's rule
-    let prize = machine.prize.add_scalar(offset);
-    let det = machine.a.determinant(&machine.b);
-    let a = prize.determinant(&machine.b) / det;
-    let b = machine.a.determinant(&prize) / det;
+    let cfg = Config::new();
+    let ctx = Context::new(&cfg);
+    let solver = Solver::new(&ctx);
 
-    let pos = Vector2(
-        machine.a.0 * a + machine.b.0 * b,
-        machine.a.1 * a + machine.b.1 * b,
-    );
-    if pos == prize {
-        Some((a, b))
-    } else {
-        None
+    /**
+     * Solve:
+     * A*a_x + B*B_x = p_x
+     * A*a_y + B*b_y = p_y
+     */
+    let prize = machine.prize.add_scalar(offset);
+    let a = Int::new_const(&ctx, "a");
+    let b = Int::new_const(&ctx, "b");
+
+    let ax = Int::from_i64(&ctx, machine.a.0 as i64);
+    let ay = Int::from_i64(&ctx, machine.a.1 as i64);
+    let bx = Int::from_i64(&ctx, machine.b.0 as i64);
+    let by = Int::from_i64(&ctx, machine.b.1 as i64);
+    let px = Int::from_i64(&ctx, prize.0 as i64);
+    let py = Int::from_i64(&ctx, prize.1 as i64);
+
+    solver.assert(&(((&a * &ax) + (&b * &bx))._eq(&px)));
+    solver.assert(&(((&a * &ay) + (&b * &by))._eq(&py)));
+
+    match solver.check() {
+        z3::SatResult::Sat => {
+            let model = solver.get_model().unwrap();
+
+            let a_presses = model.get_const_interp(&a).unwrap().as_i64().unwrap();
+            let b_presses = model.get_const_interp(&b).unwrap().as_i64().unwrap();
+
+            Some((a_presses as isize, b_presses as isize))
+        }
+        _ => None,
     }
+
+    // Apply Cramer's rule
+    // let prize = machine.prize.add_scalar(offset);
+    // let det = machine.a.determinant(&machine.b);
+    // let a = prize.determinant(&machine.b) / det;
+    // let b = machine.a.determinant(&prize) / det;
+
+    // let pos = Vector2(
+    //     machine.a.0 * a + machine.b.0 * b,
+    //     machine.a.1 * a + machine.b.1 * b,
+    // );
+    // if pos == prize {
+    //     Some((a, b))
+    // } else {
+    //     None
+    // }
 }
 
 fn part1() -> Option<isize> {
@@ -124,7 +161,7 @@ fn part1() -> Option<isize> {
         .filter_map(|machine| find_path(machine))
         .map(|(a, b)| a * 3 + b)
         .sum();
-    
+
     Some(result)
 }
 
