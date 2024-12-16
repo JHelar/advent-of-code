@@ -1,4 +1,14 @@
-use std::fmt::Display;
+use std::io;
+use std::time::Duration;
+use std::{fmt::Display, thread::sleep};
+
+use ratatui::layout::Rect;
+use ratatui::style::Stylize;
+use ratatui::{
+    style::{Color, Style},
+    widgets::Paragraph,
+    CompletedFrame,
+};
 
 use vector2::{Vector2, DOWN, LEFT, RIGHT, UP, ZERO};
 
@@ -7,6 +17,51 @@ const LEFT_SIDE: Vector2 = RIGHT;
 const RIGHT_SIDE: Vector2 = LEFT;
 
 mod vector2;
+
+struct Canvas {
+    terminal: ratatui::Terminal<ratatui::prelude::CrosstermBackend<io::Stdout>>,
+}
+
+impl Canvas {
+    fn new() -> Self {
+        let mut terminal = ratatui::init();
+        terminal.clear().unwrap();
+        Self { terminal }
+    }
+
+    fn teardown(&self) {
+        ratatui::restore();
+    }
+
+    fn draw(&mut self, warehouse: &Warehouse) -> io::Result<CompletedFrame> {
+        self.terminal.draw(|frame| {
+            let cell_width = frame.area().width / warehouse.size.0 as u16;
+            let cell_height = frame.area().height / warehouse.size.1 as u16;
+
+            for x in 0..warehouse.size.0 {
+                for y in 0..warehouse.size.1 {
+                    let paragraph = match warehouse.get_tile(&Vector2(x, y)).unwrap() {
+                        Tile::Box(side) => match *side {
+                            LEFT_SIDE => Paragraph::new("[").white(),
+                            RIGHT_SIDE => Paragraph::new("]").white(),
+                            SMALL_BOX => Paragraph::new("O").white(),
+                            _ => panic!("Bad box"),
+                        },
+                        Tile::Empty => Paragraph::new(".").dark_gray(),
+                        Tile::Robot => Paragraph::new("@").bold().light_green(),
+                        Tile::Wall => Paragraph::new("#").gray(),
+                    };
+                    if x as u16 >= frame.area().width || y as u16 >= frame.area().height {
+                        continue;
+                    }
+
+                    let area = Rect::new(x as u16, y as u16, 1, 1);
+                    frame.render_widget(paragraph, area);
+                }
+            }
+        })
+    }
+}
 
 #[derive(Debug, Clone)]
 enum Tile {
@@ -57,7 +112,9 @@ impl Warehouse {
                     *self.get_tile_mut(&new_position).unwrap() = entity.1;
                     Ok(new_position)
                 }
-                Tile::Box(side) if *direction == LEFT || *direction == RIGHT || side == SMALL_BOX => {
+                Tile::Box(side)
+                    if *direction == LEFT || *direction == RIGHT || side == SMALL_BOX =>
+                {
                     match self.step((&new_position, Tile::Box(side)), direction) {
                         Ok(_) => {
                             *self.get_tile_mut(entity.0).unwrap() = Tile::Empty;
@@ -230,14 +287,16 @@ fn part1() -> Option<isize> {
 }
 
 fn part2() -> Option<isize> {
+    let mut canvas = Canvas::new();
+
     let (mut warehouse, mut robot, directions) = read_input(true);
 
-    println!("{warehouse}");
     for direction in directions.iter() {
         robot = warehouse.run(&robot, direction);
-        println!("{warehouse}");
+        canvas.draw(&warehouse);
+        sleep(Duration::from_millis(50));
     }
-
+    canvas.teardown();
     Some(warehouse.get_gps_state())
 }
 
