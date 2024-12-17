@@ -1,0 +1,8 @@
+[package]
+name = "aoc-2024-17"
+version = "1.84.0"
+edition = "2021"
+
+[[bin]]
+name = "aoc-2024-17"
+path = "main.rs"
